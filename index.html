@@ -68,6 +68,7 @@ html,body{
    LAYOUT SHELL
 ════════════════════════════════════ */
 .shell{display:flex;flex-direction:row-reverse;min-height:100vh}
+.sidebar-overlay{display:none}
 
 /* ════════════════════════════════════
    SIDEBAR
@@ -515,131 +516,353 @@ td{padding:11px 14px;font-size:13px}
   .g3{  grid-template-columns:repeat(2,1fr) }
   .cd-grid{ grid-template-columns:repeat(2,1fr) }
   #d-subj-analysis{ grid-template-columns:1fr }
+  .banner{ flex-wrap:wrap }
 }
 
-/* ── Mobile ── */
+/* ════════════════════════════════════════
+   MOBILE PORTRAIT — full overhaul ≤640px
+════════════════════════════════════════ */
 @media(max-width:640px){
-  /* Sidebar becomes off-canvas drawer */
+
+  /* ── GLOBAL ── */
+  html{ -webkit-text-size-adjust:100% }
+
+  /* ── SHELL: sidebar becomes off-canvas, main takes full width ── */
+  .shell{ display:block; min-height:100vh }
+
+  /* ── SIDEBAR OVERLAY ── */
+  .sidebar-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.65);
+    z-index:199;
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+  }
+  .sidebar-overlay.open{ display:block }
+
+  /* ── SIDEBAR: off-canvas drawer from right (RTL) ── */
   .sidebar{
     position:fixed;
+    top:0;right:0;bottom:0;
+    width:272px;
     transform:translateX(100%);
     z-index:200;
-    width:260px;
+    overflow-y:auto;
+    box-shadow:-6px 0 28px rgba(0,0,0,.6);
     transition:transform .28s cubic-bezier(.4,0,.2,1);
   }
   .sidebar.open{ transform:translateX(0) }
 
-  /* Main area fills full width */
-  .main-area{ margin-left:0 }
+  /* ── MAIN: full viewport width ── */
+  .main{ width:100vw; min-width:0; overflow-x:hidden }
 
-  /* Content padding */
-  .content{ padding:14px 12px }
-  .page-content{ padding:14px 12px !important }
+  /* ── TOPBAR ── */
+  .topbar{
+    position:sticky;top:0;z-index:90;
+    padding:0 10px;
+    height:50px;
+    gap:6px;
+  }
+  .tb-left{ gap:8px; min-width:0; flex:1 }
+  .tb-title{ font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .tb-right{ gap:5px; flex-shrink:0 }
+  /* hide text-only quick-add button; keep primary "+ امتحان" */
+  .tb-btn:not(.primary){ display:none }
+  .tb-btn.primary{ padding:7px 12px; font-size:12px; border-radius:7px }
 
-  /* Typography scale down */
-  .banner-title{ font-size:17px !important }
-  .banner-sub{   font-size:12px !important }
-  .sdh-name{     font-size:16px !important }
-  .card-ttl{     font-size:10px }
+  /* ── CONTENT ── */
+  .content{ padding:12px 10px }
 
-  /* Grids → single column on phone */
-  .stats-grid{ grid-template-columns:1fr 1fr }
-  .g4{         grid-template-columns:1fr 1fr }
-  .g2{         grid-template-columns:1fr }
-  .g3{         grid-template-columns:1fr }
-  .strip{      grid-template-columns:1fr 1fr }
-  .rings-grid{ grid-template-columns:1fr 1fr }
-  #d-subj-analysis{ grid-template-columns:1fr }
+  /* ── BANNER ── */
+  .banner{
+    padding:14px 14px;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:14px;
+    border-radius:10px;
+  }
+  .banner::before,.banner::after{ display:none }
+  .banner-title{ font-size:16px !important; margin-bottom:2px }
+  .banner-sub{   font-size:11.5px !important }
+  .banner-pill{
+    align-self:flex-start;
+    padding:5px 12px;
+    font-size:10.5px;
+    white-space:normal;
+    text-align:right;
+  }
 
-  /* Weekly report grids */
-  #page-weekly-report .page-content{ padding:14px 12px !important }
+  /* ── STAT CARDS ── */
+  .stats-grid{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .stat-card{ padding:12px 10px; border-radius:10px }
+  .stat-ico{  width:26px;height:26px;font-size:12px;border-radius:6px;margin-bottom:8px }
+  .stat-lbl{  font-size:8.5px;letter-spacing:.3px }
+  .stat-val{  font-size:20px;margin-bottom:2px }
+  .stat-sub{  font-size:10px }
+
+  /* ── GRIDS ── */
+  .g4{ grid-template-columns:1fr 1fr; gap:8px }
+  .g3{ grid-template-columns:1fr;     gap:10px }
+  .g2{ grid-template-columns:1fr;     gap:12px }
+  .g2-form{ grid-template-columns:1fr !important }
+
+  /* ── SECTION HEADING ── */
+  .sec-h{ margin-bottom:10px }
+  .sec-t{ font-size:9px }
+  .sec-lnk{ font-size:11px }
+
+  /* ── CARDS ── */
+  .card{ border-radius:10px }
+  .card-hd{
+    padding:10px 12px;
+    flex-wrap:wrap;
+    gap:7px;
+    min-height:auto;
+  }
+  .card-ttl{ font-size:9px; letter-spacing:.3px }
+  .card-bd{  padding:12px }
+
+  /* ── SUBJECT DETAIL HEADER ── */
+  .sdh{
+    padding:14px 14px;
+    gap:12px;
+    margin-bottom:14px;
+    border-radius:10px;
+  }
+  .sdh-ico{  width:44px;height:44px;font-size:16px;border-radius:10px }
+  .sdh-name{ font-size:15px !important }
+  .sdh-meta{ font-size:11px }
+
+  /* ── STRIP (subject summary row) ── */
+  .strip{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .strip-item{ padding:11px 12px;border-radius:9px }
+  .strip-lbl{  font-size:9px }
+  .strip-val{  font-size:17px }
+
+  /* ── FORMS ── */
+  .field{ margin-bottom:10px }
+  .f-lbl{ font-size:9px; margin-bottom:5px }
+  .f-inp{
+    padding:10px 12px;
+    font-size:16px; /* prevents iOS auto-zoom */
+    border-radius:7px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn{ padding:10px 14px; font-size:13px; border-radius:7px }
+  .btn-red{  padding:13px; font-size:14px; border-radius:8px }
+  .btn-ghost{ padding:10px 14px; font-size:12px }
+  .btn-save{ padding:13px; font-size:14px }
+  .btn-back{
+    padding:7px 12px;
+    font-size:12px;
+    margin-bottom:12px;
+    border-radius:7px;
+  }
+  .btn-edit{ padding:4px 9px; font-size:11px; border-radius:5px }
+  .btn-del{  padding:4px 9px; font-size:11px; border-radius:5px }
+
+  /* ── TABLES ── */
+  .tbl-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    margin:0 -1px;
+  }
+  table{ min-width:430px; border-collapse:collapse }
+  th{   padding:8px 10px; font-size:8.5px }
+  td{   padding:9px 10px; font-size:11.5px }
+  .td-actions{ gap:4px; flex-wrap:nowrap }
+
+  /* ── COUNTDOWN ── */
+  .cd-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:7px;
+    margin-bottom:12px;
+  }
+  .cd-unit{ padding:11px 6px; border-radius:8px }
+  .cd-num{  font-size:24px }
+  .cd-lbl{  font-size:9px }
+  .cd-btns{ gap:7px }
+  .cd-go,.cd-rst{ padding:11px; font-size:13px; border-radius:7px }
+  #big-timer{ font-size:46px !important; letter-spacing:1px }
+  #big-status{ font-size:11px; margin-top:14px }
+
+  /* ── PERFORMANCE RINGS ── */
+  #d-rings.g4{ grid-template-columns:repeat(2,1fr) !important }
+  .ring-card{ padding:14px 8px; border-radius:10px }
+  .ring-card svg{ width:68px;height:68px }
+  .ring-name{ font-size:11.5px; margin-top:7px }
+  .ring-cnt{  font-size:9px }
+
+  /* ── SUBJECT ANALYSIS GRID ── */
+  #d-subj-analysis{
+    grid-template-columns:1fr !important;
+    gap:8px;
+    margin-bottom:16px;
+  }
+
+  /* ── CHARTS ── */
+  canvas{ max-height:180px !important }
+
+  /* ── MODAL ── */
+  .modal-ov{ padding:10px; align-items:flex-end }
+  .modal-box{
+    padding:20px 14px 24px;
+    border-radius:16px 16px 12px 12px;
+    max-width:100%;
+    width:100%;
+    animation:slideUp .22s ease;
+  }
+  @keyframes slideUp{
+    from{transform:translateY(40px);opacity:0}
+    to{transform:translateY(0);opacity:1}
+  }
+  .modal-box h2{ font-size:16px; margin-bottom:16px; padding-left:32px }
+  .modal-x{ top:14px; left:14px }
+
+  /* ── SUGGESTIONS ── */
+  .suggest-grid{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .suggest-card{ padding:12px 13px; gap:10px; border-radius:10px }
+  .sug-ico{   font-size:18px; margin-top:0 }
+  .sug-title{ font-size:12px; margin-bottom:3px }
+  .sug-body{  font-size:11px; line-height:1.5 }
+
+  /* ── PROGRESS BAR ── */
+  .prog-bar{ height:4px; margin-top:8px }
+
+  /* ── MODE TABS ── */
+  .mode-tabs{ gap:4px }
+  .mode-tab{ padding:3px 10px; font-size:11px }
+
+  /* ── BADGE ── */
+  .badge{ padding:2px 7px; font-size:10px }
+
+  /* ── TOAST ── */
+  .toast{
+    bottom:14px;
+    right:10px; left:10px;
+    text-align:center;
+    font-size:12px;
+    padding:10px 14px;
+    border-radius:8px;
+  }
+
+  /* ── AUTH PAGE ── */
+  #loginPage{
+    padding:16px;
+    align-items:flex-start;
+    padding-top:clamp(24px, 8vh, 60px);
+    overflow-y:auto;
+  }
+  .auth-card{
+    padding:24px 16px;
+    border-radius:14px;
+    width:100%;
+    max-width:100%;
+  }
+  .auth-logo{ margin-bottom:20px }
+  .auth-logo-icon{ width:46px;height:46px;border-radius:12px;font-size:20px }
+  .auth-logo-title{ font-size:17px }
+  .auth-logo-sub{ font-size:11px }
+  .auth-mode-wrap{ margin-bottom:18px; border-radius:9px }
+  .auth-mode-btn{ padding:8px 6px; font-size:12px; border-radius:7px }
+  .auth-title{ font-size:16px }
+  .auth-sub{   font-size:11px; margin-bottom:16px }
+  .auth-input{
+    padding:11px 13px;
+    font-size:16px;
+    margin-bottom:9px;
+    border-radius:7px;
+  }
+  .auth-btn{
+    padding:13px;
+    font-size:14px;
+    margin-top:6px;
+    border-radius:8px;
+  }
+  .auth-msg{ font-size:12px; padding:9px 12px }
+
+  /* ── PROFILE PAGE ── */
+  #page-profile .banner{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:12px;
+    padding:16px 14px;
+  }
+
+  /* ── SIDEBAR FOOTER BUTTON ── */
+  .foot-btn{ padding:9px 12px; font-size:12px }
+
+  /* ── WEEKLY REPORT — override ALL inline grid styles ── */
+  #page-weekly-report .page-content{
+    padding:12px 10px !important;
+    max-width:100% !important;
+  }
+  /* week range cards: 2-col → 1-col */
   #page-weekly-report [style*="grid-template-columns:1fr 1fr"]{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:9px !important;
+  }
+  /* stats row: 4-col → 2-col */
+  #page-weekly-report [style*="grid-template-columns:repeat(4,1fr)"]{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:9px !important;
+  }
+  /* action buttons row */
+  #page-weekly-report div[style*="grid-template-columns:1fr 1fr"][style*="gap:12px"]{
     grid-template-columns:1fr !important;
   }
-  #page-weekly-report [style*="grid-template-columns:repeat(4"]{
-    grid-template-columns:1fr 1fr !important;
+  /* message preview */
+  #wr-preview{
+    font-size:12px !important;
+    padding:12px !important;
+    max-height:160px !important;
+    line-height:1.8 !important;
   }
-
-  /* Cards */
-  .card-bd{ padding:14px }
-  .card-hd{ padding:12px 14px; flex-wrap:wrap; gap:8px }
-
-  /* Countdown units */
-  .cd-grid{ grid-template-columns:repeat(2,1fr) }
-  .cd-num{  font-size:26px }
-
-  /* Table — horizontal scroll */
-  .tbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch }
-  table{     min-width:480px }
-  th, td{    padding:9px 10px; font-size:12px }
-
-  /* Topbar */
-  .topbar{ padding:0 12px; height:52px }
-  .tb-title{ font-size:14px }
-  .tb-btn{   padding:6px 10px; font-size:12px }
-
-  /* Sidebar brand */
-  .sb-brand{ padding:16px 14px 14px }
-  .brand-logo-title{ font-size:18px }
-
-  /* Buttons touch-friendly */
-  .btn{ padding:11px 16px; font-size:13px }
-  .btn-red{ padding:13px; font-size:14px }
-  .auth-btn{ padding:13px; font-size:14px }
-  .cd-go, .cd-rst{ padding:12px; font-size:13px }
-
-  /* Forms */
-  .g2-form{ grid-template-columns:1fr !important }
-  .f-inp{   font-size:16px }  /* prevent iOS zoom */
-  .auth-input{ font-size:16px }
-
-  /* Auth card */
-  .auth-card{ padding:24px 16px }
-  .auth-mode-wrap{ margin-bottom:18px }
-
-  /* Subject detail strips */
-  .strip{ grid-template-columns:1fr 1fr }
-
-  /* Progress rings */
-  .ring-card{ padding:16px 10px }
-
-  /* Subject cards font */
-  .subj-name{ font-size:13px }
-  .subj-score{ font-size:20px }
-
-  /* Charts */
-  canvas{ max-height:200px }
-
-  /* Quick modal */
-  .modal-box{ padding:22px 16px; border-radius:14px }
-  .modal-box h2{ font-size:17px }
-
-  /* Suggestions */
-  .suggest-grid{ grid-template-columns:1fr }
-
-  /* Big countdown timer */
-  #big-timer{ font-size:52px !important }
-
-  /* Profile banner avatar */
-  #page-profile .banner{ flex-direction:column; align-items:flex-start; gap:12px }
+  /* whatsapp button */
+  #page-weekly-report .btn-red{ margin-bottom:0 }
 }
 
-/* ── Very small phones (< 380px) ── */
+/* ── Very small phones ≤ 380px ── */
 @media(max-width:380px){
-  .stats-grid{ grid-template-columns:1fr }
-  .g4{         grid-template-columns:1fr }
-  .strip{      grid-template-columns:1fr }
-  .cd-grid{    grid-template-columns:repeat(2,1fr) }
-  .auth-card{  padding:20px 12px }
-  .content{    padding:10px }
-  .topbar{     padding:0 8px }
+  .stats-grid{
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+  }
+  .stat-val{  font-size:18px }
+  .stat-lbl{  font-size:8px }
+  .g4{        grid-template-columns:1fr 1fr; gap:7px }
+  .strip{     grid-template-columns:1fr 1fr; gap:6px }
+  .auth-card{ padding:20px 12px }
+  .content{   padding:10px 8px }
+  .topbar{    padding:0 8px; height:48px }
+  .tb-title{  font-size:12px }
+  .banner-title{ font-size:14px !important }
+  .cd-num{    font-size:20px }
+  .modal-box{ padding:16px 12px 20px }
+  .card-bd{   padding:10px }
 }
 
 /* ── Prevent horizontal overflow globally ── */
-*, *::before, *::after{ max-width:100% }
+*, *::before, *::after{ box-sizing:border-box; max-width:100% }
 img, canvas, svg{ max-width:100%; height:auto }
 .shell{ overflow-x:hidden }
-body{ overflow-x:hidden }
+body{   overflow-x:hidden; -webkit-overflow-scrolling:touch }
 
 /* ── Suggestions ── */
 .suggest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
@@ -882,6 +1105,7 @@ body{ overflow-x:hidden }
     <button class="foot-btn out" onclick="logout()">🚪 تسجيل الخروج</button>
   </div>
 </aside>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- ══════════════════════════════════════
      MAIN
@@ -1301,15 +1525,15 @@ body{ overflow-x:hidden }
         <div class="card">
           <div class="card-hd"><div class="card-ttl">👤 البيانات الشخصية</div></div>
           <div class="card-bd">
-            <div class="field"><label class="f-lbl">الاسم الكامل</label><input type="text" class="f-inp" value="أحمد حسن محمد"/></div>
-            <div class="field"><label class="f-lbl">البريد الإلكتروني</label><input type="email" class="f-inp" value="ahmed@student.edu"/></div>
-            <div class="field"><label class="f-lbl">رقم الهاتف</label><input type="tel" class="f-inp" value="+20 100 123 4567"/></div>
+            <div class="field"><label class="f-lbl">الاسم الكامل</label><input type="text" class="f-inp" id="prof-name" value=""/></div>
+            <div class="field"><label class="f-lbl">البريد الإلكتروني</label><input type="email" class="f-inp" id="prof-email" value="" readonly/></div>
+            <div class="field"><label class="f-lbl">رقم الهاتف</label><input type="tel" class="f-inp" id="prof-phone" value=""/></div>
             <div class="field">
               <label class="f-lbl">الصف الدراسي</label>
-              <select class="f-inp">
-                <option>الصف الأول الثانوي</option>
-                <option selected>الصف الثاني الثانوي</option>
-                <option>الصف الثالث الثانوي</option>
+              <select class="f-inp" id="prof-grade">
+                <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                <option value="الصف الثاني الثانوي" selected>الصف الثاني الثانوي</option>
+                <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
               </select>
             </div>
             <div class="field">
@@ -1332,7 +1556,7 @@ body{ overflow-x:hidden }
             </div>
             <div class="field">
               <label class="f-lbl">السنة الميلادية</label>
-              <input type="number" class="f-inp" id="birth-year" placeholder="مثال: 2008" min="1990" max="2015"/>
+              <input type="number" class="f-inp" id="prof-birth-year" placeholder="مثال: 2008" min="1990" max="2015"/>
             </div>
             <button class="btn btn-save">💾 حفظ التغييرات</button>
           </div>
@@ -1616,6 +1840,10 @@ function showPage(pid, navEl){
   prevPage=curPage;
   curPage=pid;
 
+  /* Persist navigation so refresh restores the same page */
+  localStorage.setItem('st_page', pid);
+  localStorage.removeItem('st_subj');
+
   if(pid==='dashboard')      renderDash();
   if(pid==='all-subjects')   renderAllSubjects();
   if(pid==='comprehensive')  renderCompPage();
@@ -1644,6 +1872,9 @@ function openSubject(id, fromNavEl){
 
   prevPage=curPage;
   curPage='subject';
+  /* Persist so refresh restores subject page */
+  localStorage.setItem('st_page', 'subject');
+  localStorage.setItem('st_subj', id);
   cancelEdit();
   renderSubjectPage();
   closeSidebar();
@@ -1672,9 +1903,16 @@ function renderSidebarSubjects(){
   `).join('');
 }
 
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open') }
+function toggleSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.toggle('open');
+  if(overlay) overlay.classList.toggle('open', isOpen);
+}
 function closeSidebar(){
-  if(window.innerWidth<=640) document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar').classList.remove('open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if(overlay) overlay.classList.remove('open');
 }
 
 /* ════════════════════════════════════════
@@ -2542,23 +2780,18 @@ function renderCompChart(){
 /* In-memory profile store — reset on logout */
 let currentProfile = {};
 
-/* ── Get the 4 inputs + 3 selects in profile card ── */
-function _profInputs(){
-  const bd      = document.querySelector('#page-profile .card-bd');
-  const inputs  = bd.querySelectorAll('input.f-inp');
-  /* inputs[0]=name, inputs[1]=email, inputs[2]=phone, inputs[3]=birth-year */
-  const selects = bd.querySelectorAll('select.f-inp');
-  /* selects[0]=grade, selects[1]=semester, selects[2]=year */
-  return { inputs, selects };
-}
+/* ── Direct profile field helpers (ID-based — no fragile index access) ── */
+function _pEl(id){ return document.getElementById(id); }
 
 /* ── Apply name everywhere in the UI ── */
 function _applyName(fullName){
   if(!fullName) return;
   const first = fullName.split(' ')[0];
 
-  document.querySelector('.user-av').textContent   = fullName.charAt(0);
-  document.querySelector('.user-name').textContent = fullName;
+  const userAv = document.querySelector('.user-av');
+  const userNm = document.querySelector('.user-name');
+  if(userAv) userAv.textContent = fullName.charAt(0);
+  if(userNm) userNm.textContent = fullName;
 
   const dashBanner = document.querySelector('#page-dashboard .banner-title span');
   if(dashBanner) dashBanner.textContent = first;
@@ -2578,6 +2811,18 @@ function _applyName(fullName){
   }
 }
 
+/* ── Fill profile form from a data object ── */
+function _fillProfileForm(data){
+  if(!data) return;
+  const n = _pEl('prof-name');      if(n) n.value = data.name      || '';
+  const e = _pEl('prof-email');     if(e) e.value = data.email     || '';
+  const p = _pEl('prof-phone');     if(p) p.value = data.phone     || '';
+  const g = _pEl('prof-grade');     if(g) g.value = data.grade     || 'الصف الثاني الثانوي';
+  const s = _pEl('prof-semester');  if(s) s.value = data.semester  || 'الفصل الدراسي الأول';
+  const y = _pEl('prof-year');      if(y) y.value = data.studyYear || '2024–2025';
+  const b = _pEl('prof-birth-year');if(b) b.value = data.birthYear || '';
+}
+
 /* ── Load profile from MongoDB and fill form ── */
 async function loadProfile(){
   if(!authToken) return;
@@ -2585,18 +2830,8 @@ async function loadProfile(){
     const res  = await fetch(`${API}/me`, { headers: apiHeaders() });
     if(!res.ok) return;
     const data = await res.json();
-
     currentProfile = data;
-
-    const {inputs, selects} = _profInputs();
-    inputs[0].value  = data.name      || '';
-    inputs[1].value  = data.email     || '';
-    inputs[2].value  = data.phone     || '';
-    inputs[3].value  = data.birthYear || '';
-    selects[0].value = data.grade     || 'الصف الثاني الثانوي';
-    selects[1].value = data.semester  || 'الفصل الدراسي الأول';
-    selects[2].value = data.studyYear || '2024–2025';
-
+    _fillProfileForm(data);
     _applyName(data.name);
     updateDashPill();
   } catch {
@@ -2607,39 +2842,36 @@ async function loadProfile(){
 /* ── Save profile to MongoDB via PUT /me ── */
 async function saveProfile(){
   if(!authToken) return;
-  const {inputs, selects} = _profInputs();
 
-  const name      = inputs[0].value.trim();
-  const phone     = inputs[2].value.trim();
-  const birthYear = inputs[3].value.trim();
+  const name      = (_pEl('prof-name')       || {}).value?.trim() || '';
+  const phone     = (_pEl('prof-phone')      || {}).value?.trim() || '';
+  const grade     = (_pEl('prof-grade')      || {}).value || 'الصف الثاني الثانوي';
+  const semester  = (_pEl('prof-semester')   || {}).value || 'الفصل الدراسي الأول';
+  const studyYear = (_pEl('prof-year')       || {}).value || '2024–2025';
+  const birthYear = (_pEl('prof-birth-year') || {}).value?.trim() || '';
 
-  /* ── Profile validation ── */
   if(!name){
     toast('من فضلك أكمل بياناتك — الاسم مطلوب','err'); return;
   }
 
-  const body = {
-    name,
-    phone,
-    grade:      selects[0].value,
-    semester:   selects[1].value,
-    studyYear:  selects[2].value,
-    birthYear,
-  };
   try {
-    const res  = await fetch(`${API}/me`, {
+    const res = await fetch(`${API}/me`, {
       method: 'PUT', headers: apiHeaders(),
-      body: JSON.stringify(body),
+      body: JSON.stringify({ name, phone, grade, semester, studyYear, birthYear }),
     });
     if(!res.ok){
-      const d = await res.json();
+      const d = await res.json().catch(()=>({}));
       toast(d.error || 'خطأ في الحفظ', 'err');
       return;
     }
     const data = await res.json();
     currentProfile = data;
+    /* Repopulate form with what server confirmed (keeps form in sync) */
+    _fillProfileForm(data);
     _applyName(data.name);
     updateDashPill();
+    /* Persist name for offline fallback */
+    localStorage.setItem('st_name', data.name);
     toast('تم حفظ البيانات ✓','ok');
   } catch {
     toast('الخادم غير متاح حالياً','err');
@@ -2649,16 +2881,7 @@ async function saveProfile(){
 /* ── Reset profile inputs on logout ── */
 function resetProfile(){
   currentProfile = {};
-  try {
-    const {inputs, selects} = _profInputs();
-    inputs[0].value  = '';
-    inputs[1].value  = '';
-    inputs[2].value  = '';
-    inputs[3].value  = '';
-    selects[0].value = 'الصف الثاني الثانوي';
-    selects[1].value = 'الفصل الدراسي الأول';
-    selects[2].value = '2024–2025';
-  } catch {}
+  _fillProfileForm({ name:'', email:'', phone:'', grade:'الصف الثاني الثانوي', semester:'الفصل الدراسي الأول', studyYear:'2024–2025', birthYear:'' });
 }
 
 function renderProfile(){
@@ -3143,8 +3366,24 @@ document.querySelector('.btn.btn-save').addEventListener('click', function(e){
 ════════════════════════════════════════ */
 /* API already declared in main script above */
 
+/* ── Restore last visited page after login/refresh ── */
+function _restorePage() {
+  const page = localStorage.getItem('st_page');
+  const subj = localStorage.getItem('st_subj');
+  if (!page || page === 'dashboard') return; /* dashboard is default */
+  try {
+    if (page === 'subject' && subj) {
+      openSubject(subj, null);
+    } else {
+      showPage(page, null);
+    }
+  } catch(e) {
+    /* ignore if page element missing */
+  }
+}
+
 /* ── Show / Hide helpers ── */
-function showApp(name) {
+function showApp(name, restorePage) {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('mainApp').style.display   = 'block';
 
@@ -3152,6 +3391,11 @@ function showApp(name) {
   if (typeof _applyName  === 'function') _applyName(name);
   if (typeof loadProfile === 'function') loadProfile();   /* GET /me → per-user profile */
   if (typeof renderDash  === 'function') renderDash();
+
+  /* Restore last page only on refresh (not fresh login) */
+  if (restorePage) {
+    setTimeout(_restorePage, 100); /* slight delay so renderDash finishes first */
+  }
 }
 function showLogin() {
   document.getElementById('mainApp').style.display   = 'none';
@@ -3183,8 +3427,11 @@ function clearMsg() {
 
 /* ── Logout ── */
 function logout() {
-  /* Clear token */
+  /* Clear token + session data */
   localStorage.removeItem('st_token');
+  localStorage.removeItem('st_name');
+  localStorage.removeItem('st_page');
+  localStorage.removeItem('st_subj');
   authToken = null;
 
   /* Reset all in-memory user data */
@@ -3231,13 +3478,14 @@ async function doLogin() {
 
     if (!res.ok) { showMsg(data.error || 'الإيميل أو الباسورد غلط', 'error'); return; }
 
-    /* Save token */
+    /* Save token + name for offline fallback */
     localStorage.setItem('st_token', data.token);
+    localStorage.setItem('st_name',  data.name);
     if (typeof authToken !== 'undefined') authToken = data.token;
 
-    /* Load grades from DB then show app */
+    /* Load grades from DB then show app (fresh login → no page restore) */
     if (typeof loadGradesFromDB === 'function') await loadGradesFromDB();
-    showApp(data.name);
+    showApp(data.name, false);
 
   } catch {
     showMsg('الخادم غير متاح حالياً', 'error');
@@ -3300,22 +3548,46 @@ async function doRegister() {
 ════════════════════════════════════════ */
 (async function autoLogin() {
   const token = localStorage.getItem('st_token');
-  if (!token) return;
+  if (!token) return; /* No token — stay on login */
 
   try {
     const res = await fetch(`${API}/me`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
-    if (!res.ok) { localStorage.removeItem('st_token'); return; }
 
+    /* Token rejected (expired / invalid) → clear and show login */
+    if (res.status === 401) {
+      localStorage.removeItem('st_token');
+      localStorage.removeItem('st_name');
+      localStorage.removeItem('st_page');
+      localStorage.removeItem('st_subj');
+      return;
+    }
+
+    /* Other server errors → try to show app with cached name */
+    if (!res.ok) {
+      const cachedName = localStorage.getItem('st_name') || '';
+      if (typeof authToken !== 'undefined') authToken = token;
+      showApp(cachedName, true);
+      return;
+    }
+
+    /* Success → update name, load grades, restore page */
     const data = await res.json();
+    localStorage.setItem('st_name', data.name);
     if (typeof authToken !== 'undefined') authToken = token;
     if (typeof loadGradesFromDB === 'function') await loadGradesFromDB();
-    showApp(data.name);
+    showApp(data.name, true); /* true = restore last visited page */
 
   } catch {
-    localStorage.removeItem('st_token');
-    /* Server unreachable on page load — stay on login screen */
+    /* Network error (server cold start, offline, etc.) → show app with cached credentials */
+    const cachedName = localStorage.getItem('st_name') || '';
+    if (cachedName) {
+      /* Token exists + name cached → let user in, data will load when server is up */
+      if (typeof authToken !== 'undefined') authToken = token;
+      showApp(cachedName, true);
+    }
+    /* If no cached name, stay on login screen */
   }
 })();
 </script>
