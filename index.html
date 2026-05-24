@@ -1065,10 +1065,10 @@ body{   overflow-x:hidden; -webkit-overflow-scrolling:touch }
       <div class="brand-txt">Student Tracker<span>Track your academic progress</span></div>
     </div>
     <div class="user-row">
-      <div class="user-av">أ</div>
+      <div class="user-av" id="user-av">أ</div>
       <div>
-        <div class="user-name">أحمد حسن</div>
-        <div class="user-sub">الصف الثاني الثانوي · قسم الرياضة</div>
+        <div class="user-name" id="user-name">أحمد</div>
+        <div class="user-sub" id="user-sub">الصف الثاني الثانوي · الفصل الأول</div>
       </div>
     </div>
   </div>
@@ -1514,10 +1514,10 @@ body{   overflow-x:hidden; -webkit-overflow-scrolling:touch }
     <div class="page" id="page-profile">
       <div class="banner" style="margin-bottom:22px">
         <div style="display:flex;align-items:center;gap:16px">
-          <div style="width:58px;height:58px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 22px rgba(204,0,0,.5)">أ</div>
+          <div id="prof-av" style="width:58px;height:58px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 22px rgba(204,0,0,.5)">أ</div>
           <div>
-            <div class="banner-title" style="font-size:20px">أحمد <span>حسن</span></div>
-            <div class="banner-sub">الصف الثاني الثانوي · قسم الرياضة</div>
+            <div class="banner-title" id="prof-banner-title" style="font-size:20px">أحمد <span>حسن</span></div>
+            <div class="banner-sub" id="prof-banner-sub">الصف الثاني الثانوي · الفصل الأول</div>
           </div>
         </div>
       </div>
@@ -1530,7 +1530,7 @@ body{   overflow-x:hidden; -webkit-overflow-scrolling:touch }
             <div class="field"><label class="f-lbl">رقم الهاتف</label><input type="tel" class="f-inp" id="prof-phone" value=""/></div>
             <div class="field">
               <label class="f-lbl">الصف الدراسي</label>
-              <select class="f-inp" id="prof-grade">
+              <select class="f-inp" id="prof-grade" onchange="updateDashPill()">
                 <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
                 <option value="الصف الثاني الثانوي" selected>الصف الثاني الثانوي</option>
                 <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
@@ -2783,32 +2783,70 @@ let currentProfile = {};
 /* ── Direct profile field helpers (ID-based — no fragile index access) ── */
 function _pEl(id){ return document.getElementById(id); }
 
-/* ── Apply name everywhere in the UI ── */
-function _applyName(fullName){
-  if(!fullName) return;
-  const first = fullName.split(' ')[0];
+/* ════════════════════════════════════════
+   GLOBAL PROFILE UI SYNC
+   Call this any time profile data changes.
+   Updates EVERY element that shows name,
+   grade, semester, year, or avatar letter.
+════════════════════════════════════════ */
+function _applyUserInfo(data){
+  if(!data) return;
 
-  const userAv = document.querySelector('.user-av');
-  const userNm = document.querySelector('.user-name');
-  if(userAv) userAv.textContent = fullName.charAt(0);
+  const fullName  = data.name      || '';
+  const grade     = data.grade     || '';
+  const semester  = data.semester  || '';
+  const studyYear = data.studyYear || '';
+  const first     = fullName.split(' ')[0] || '';
+  const initial   = fullName.charAt(0)     || '؟';
+
+  /* ── Sidebar: avatar letter ── */
+  const userAv = document.getElementById('user-av') || document.querySelector('.user-av');
+  if(userAv) userAv.textContent = initial;
+
+  /* ── Sidebar: full name ── */
+  const userNm = document.getElementById('user-name') || document.querySelector('.user-name');
   if(userNm) userNm.textContent = fullName;
 
+  /* ── Sidebar: grade · semester subtitle ── */
+  const userSub = document.getElementById('user-sub');
+  if(userSub){
+    const parts = [grade, semester].filter(Boolean);
+    userSub.textContent = parts.join(' · ');
+  }
+
+  /* ── Dashboard banner greeting ── */
   const dashBanner = document.querySelector('#page-dashboard .banner-title span');
   if(dashBanner) dashBanner.textContent = first;
 
-  let profAv = document.getElementById('prof-av');
-  if(!profAv){
-    profAv = document.querySelector('#page-profile .banner div[style*="border-radius:50%"]');
-    if(profAv) profAv.id = 'prof-av';
+  /* ── Dashboard pill: semester + year ── */
+  const pill = document.getElementById('dash-pill');
+  if(pill && (semester || studyYear)){
+    pill.textContent = [semester, studyYear].filter(Boolean).join(' ');
   }
-  if(profAv) profAv.textContent = fullName.charAt(0);
 
-  const profBanner = document.querySelector('#page-profile .banner-title');
-  if(profBanner){
+  /* ── Profile page avatar letter ── */
+  const profAv = document.getElementById('prof-av');
+  if(profAv) profAv.textContent = initial;
+
+  /* ── Profile page banner name ── */
+  const profBannerTitle = document.getElementById('prof-banner-title');
+  if(profBannerTitle){
     const parts = fullName.split(' ');
     const rest  = parts.slice(1).join(' ');
-    profBanner.innerHTML = parts[0] + (rest ? ` <span>${rest}</span>` : '');
+    profBannerTitle.innerHTML = parts[0] + (rest ? ` <span>${rest}</span>` : '');
   }
+
+  /* ── Profile page banner subtitle: grade · semester ── */
+  const profBannerSub = document.getElementById('prof-banner-sub');
+  if(profBannerSub){
+    const parts = [grade, semester].filter(Boolean);
+    profBannerSub.textContent = parts.length ? parts.join(' · ') : (studyYear || '');
+  }
+}
+
+/* ── Legacy thin wrappers (kept for backward compat) ── */
+function _applyName(fullName){
+  _applyUserInfo({ ...currentProfile, name: fullName });
 }
 
 /* ── Fill profile form from a data object ── */
@@ -2832,8 +2870,7 @@ async function loadProfile(){
     const data = await res.json();
     currentProfile = data;
     _fillProfileForm(data);
-    _applyName(data.name);
-    updateDashPill();
+    _applyUserInfo(data);   /* updates ALL profile-dependent UI at once */
   } catch {
     /* silent — profile will remain empty if server unreachable on load */
   }
@@ -2868,8 +2905,7 @@ async function saveProfile(){
     currentProfile = data;
     /* Repopulate form with what server confirmed (keeps form in sync) */
     _fillProfileForm(data);
-    _applyName(data.name);
-    updateDashPill();
+    _applyUserInfo(data);   /* updates ALL profile-dependent UI instantly */
     /* Persist name for offline fallback */
     localStorage.setItem('st_name', data.name);
     toast('تم حفظ البيانات ✓','ok');
@@ -2880,8 +2916,24 @@ async function saveProfile(){
 
 /* ── Reset profile inputs on logout ── */
 function resetProfile(){
+  const blank = { name:'', email:'', phone:'', grade:'الصف الثاني الثانوي', semester:'الفصل الدراسي الأول', studyYear:'2024–2025', birthYear:'' };
   currentProfile = {};
-  _fillProfileForm({ name:'', email:'', phone:'', grade:'الصف الثاني الثانوي', semester:'الفصل الدراسي الأول', studyYear:'2024–2025', birthYear:'' });
+  _fillProfileForm(blank);
+  /* Reset all UI elements that show profile data */
+  const userAv = document.getElementById('user-av') || document.querySelector('.user-av');
+  if(userAv) userAv.textContent = '؟';
+  const userNm = document.getElementById('user-name') || document.querySelector('.user-name');
+  if(userNm) userNm.textContent = '';
+  const userSub = document.getElementById('user-sub');
+  if(userSub) userSub.textContent = '';
+  const profAv = document.getElementById('prof-av');
+  if(profAv) profAv.textContent = '؟';
+  const profBannerTitle = document.getElementById('prof-banner-title');
+  if(profBannerTitle) profBannerTitle.textContent = '';
+  const profBannerSub = document.getElementById('prof-banner-sub');
+  if(profBannerSub) profBannerSub.textContent = '';
+  const pill = document.getElementById('dash-pill');
+  if(pill) pill.textContent = 'الفصل الدراسي الأول 2024–2025';
 }
 
 function renderProfile(){
@@ -3333,13 +3385,26 @@ document.getElementById('quick-modal').addEventListener('click',function(e){
 });
 
 /* ════════════════════════════════════════
-   UPDATE DASHBOARD PILL FROM PROFILE
+   LIVE UPDATE — called onchange from form selects
+   Syncs dash-pill, sidebar user-sub and profile
+   banner-sub immediately as the user edits.
 ════════════════════════════════════════ */
 function updateDashPill(){
-  const sem=document.getElementById('prof-semester').value;
-  const yr =document.getElementById('prof-year').value;
-  const pill=document.getElementById('dash-pill');
-  if(pill) pill.textContent=sem+' '+yr;
+  const grade   = (document.getElementById('prof-grade')    || {}).value || '';
+  const sem     = (document.getElementById('prof-semester') || {}).value || '';
+  const yr      = (document.getElementById('prof-year')     || {}).value || '';
+
+  /* Dashboard pill */
+  const pill = document.getElementById('dash-pill');
+  if(pill) pill.textContent = [sem, yr].filter(Boolean).join(' ');
+
+  /* Sidebar user-sub */
+  const userSub = document.getElementById('user-sub');
+  if(userSub) userSub.textContent = [grade, sem].filter(Boolean).join(' · ');
+
+  /* Profile banner subtitle */
+  const profBannerSub = document.getElementById('prof-banner-sub');
+  if(profBannerSub) profBannerSub.textContent = [grade, sem].filter(Boolean).join(' · ') || yr;
 }
 
 /* ════════════════════════════════════════
