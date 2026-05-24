@@ -1,68 +1,81 @@
-// server.js — Student Tracker Backend (Render-Ready)
+// server.js — Student Tracker Backend
+// Compatible: Koyeb · Cyclic · Glitch · Fly.io · any Node.js host
+'use strict';
+
 const express  = require('express');
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const path     = require('path');
+const http     = require('http');
 
 const User  = require('./models/User');
 const Grade = require('./models/Grade');
 
+/* ════════════════════════════════════════
+   CONFIG — all values from env variables
+════════════════════════════════════════ */
+const PORT      = process.env.PORT      || 3000;
+const SECRET    = process.env.JWT_SECRET || 'student_tracker_secret_2024';
+const MONGO_URI = process.env.MONGO_URI  || process.env.MONGODB_URI || null;
+
+if (!MONGO_URI) {
+  console.error('FATAL: MONGO_URI environment variable is not set.');
+  process.exit(1);
+}
+
 const app = express();
 
-const PORT      = process.env.PORT      || 3000;
-const SECRET    = process.env.JWT_SECRET  || 'student_tracker_secret_2024';
-const MONGO_URI = process.env.MONGO_URI   || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/studentTracker';
-
 /* ════════════════════════════════════════
-   CORS
+   CORS — open for all origins
+   (safe because auth is JWT-based)
 ════════════════════════════════════════ */
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
-
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (ALLOWED_ORIGIN === '*') {
-    res.header('Access-Control-Allow-Origin', '*');
-  } else {
-    const allowed = ALLOWED_ORIGIN.split(',').map(o => o.trim());
-    if (origin && allowed.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-  }
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin',  origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-app.use(express.json());
+/* ════════════════════════════════════════
+   BODY PARSER
+════════════════════════════════════════ */
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 /* ════════════════════════════════════════
-   SERVE STATIC FRONTEND
+   STATIC FRONTEND
+   (serves index.html if in same folder)
 ════════════════════════════════════════ */
 app.use(express.static(path.join(__dirname)));
 
 /* ════════════════════════════════════════
-   MONGODB ATLAS
+   MONGODB ATLAS — with auto-reconnect
 ════════════════════════════════════════ */
 mongoose.set('strictQuery', false);
 
-mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-})
-  .then(() => console.log('MongoDB Atlas connected'))
-  .catch(err => {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
-  });
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS:          45000,
+      maxPoolSize:              10,
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    setTimeout(connectDB, 5000); // retry after 5s
+  }
+};
+
+connectDB();
 
 mongoose.connection.on('disconnected', () => {
-  console.error('MongoDB disconnected — attempting reconnect...');
-});
-
-mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected');
+  console.warn('MongoDB disconnected — retrying...');
+  setTimeout(connectDB, 5000);
 });
 
 /* ════════════════════════════════════════
@@ -81,19 +94,19 @@ function auth(req, res, next) {
 }
 
 /* ════════════════════════════════════════
-   HEALTH CHECK — Render ping endpoint
+   HEALTH — ping endpoint (keeps app alive)
 ════════════════════════════════════════ */
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Student Tracker API is running' });
+  res.json({ status: 'ok', service: 'Student Tracker API' });
 });
 
 app.get('/api/health', (req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const states  = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
-  res.json({
-    status:   dbState === 1 ? 'ok' : 'degraded',
-    database: states[dbState] || 'unknown',
-    uptime:   process.uptime(),
+  const states = { 0:'disconnected', 1:'connected', 2:'connecting', 3:'disconnecting' };
+  const db     = mongoose.connection.readyState;
+  res.status(db === 1 ? 200 : 503).json({
+    status:   db === 1 ? 'ok' : 'degraded',
+    database: states[db] || 'unknown',
+    uptime:   Math.floor(process.uptime()),
   });
 });
 
@@ -106,7 +119,7 @@ app.get('/me', auth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'المستخدم مش موجود' });
     res.json(user);
   } catch (err) {
-    console.error('GET /me error:', err.message);
+    console.error('GET /me:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -130,7 +143,7 @@ app.put('/me', auth, async (req, res) => {
     await user.save();
     res.json(user);
   } catch (err) {
-    console.error('PUT /me error:', err.message);
+    console.error('PUT /me:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -152,12 +165,16 @@ app.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'الإيميل ده موجود بالفعل' });
 
     const hashed = await bcrypt.hash(password, 10);
-    await User.create({ name: name.trim(), email: email.toLowerCase(), password: hashed });
+    await User.create({
+      name:     name.trim(),
+      email:    email.toLowerCase(),
+      password: hashed,
+    });
 
     res.status(201).json({ message: 'تم إنشاء الحساب بنجاح' });
 
   } catch (err) {
-    console.error('Register error:', err.message);
+    console.error('POST /register:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -189,7 +206,7 @@ app.post('/login', async (req, res) => {
     res.json({ token, name: user.name, email: user.email });
 
   } catch (err) {
-    console.error('Login error:', err.message);
+    console.error('POST /login:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -202,7 +219,7 @@ app.get('/grades', auth, async (req, res) => {
     const grades = await Grade.find({ userId: req.user.id }).sort({ createdAt: 1 });
     res.json(grades);
   } catch (err) {
-    console.error('GET /grades error:', err.message);
+    console.error('GET /grades:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -229,7 +246,7 @@ app.post('/grades', auth, async (req, res) => {
 
     res.status(201).json(grade);
   } catch (err) {
-    console.error('POST /grades error:', err.message);
+    console.error('POST /grades:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -250,7 +267,7 @@ app.put('/grades/:id', auth, async (req, res) => {
 
     res.json(grade);
   } catch (err) {
-    console.error('PUT /grades/:id error:', err.message);
+    console.error('PUT /grades/:id:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -264,7 +281,7 @@ app.delete('/grades/:id', auth, async (req, res) => {
     if (!grade) return res.status(404).json({ error: 'الدرجة مش موجودة' });
     res.json({ message: 'تم الحذف بنجاح' });
   } catch (err) {
-    console.error('DELETE /grades/:id error:', err.message);
+    console.error('DELETE /grades/:id:', err.message);
     res.status(500).json({ error: 'خطأ في السيرفر' });
   }
 });
@@ -275,6 +292,38 @@ app.delete('/grades/:id', auth, async (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ error: 'خطأ داخلي في السيرفر' });
+});
+
+/* ════════════════════════════════════════
+   SELF-PING — prevents sleep on Glitch/free tiers
+   Set SELF_URL=https://your-app-url.com to enable
+════════════════════════════════════════ */
+if (process.env.SELF_URL) {
+  setInterval(() => {
+    http.get(process.env.SELF_URL + '/api/health', (res) => {
+      res.resume();
+    }).on('error', () => {});
+  }, 4 * 60 * 1000); // every 4 minutes
+}
+
+/* ════════════════════════════════════════
+   GRACEFUL SHUTDOWN
+════════════════════════════════════════ */
+const shutdown = async (signal) => {
+  console.log(`${signal} received — shutting down gracefully`);
+  await mongoose.connection.close();
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
 });
 
 /* ════════════════════════════════════════

@@ -1,0 +1,3324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Student Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  /* ── الألوان الأساسية: أسود + أحمر ── */
+  --black:    #000000;
+  --black2:   #0a0a0a;
+  --black3:   #111111;
+  --black4:   #181818;
+  --black5:   #202020;
+  --black6:   #2a2a2a;
+
+  --red:      #cc0000;
+  --red-h:    #e60000;   /* hover */
+  --red-l:    #ff1a1a;   /* light accent */
+  --red-dim:  #991100;   /* dimmed */
+  --red-bg:   rgba(204,0,0,0.10);
+  --red-bg2:  rgba(204,0,0,0.18);
+  --red-brd:  rgba(204,0,0,0.30);
+
+  --white:    #f5f5f5;
+  --grey:     #888888;
+  --grey2:    #555555;
+  --grey3:    #333333;
+
+  --green:    #22c55e;
+  --amber:    #f59e0b;
+  --blue:     #3b82f6;
+
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.11);
+
+  --r:12px; --rs:8px;
+  --font:'Cairo',sans-serif;
+}
+
+html,body{
+  height:100%;min-height:100vh;
+  font-family:var(--font);
+  background:var(--black);
+  color:var(--white);
+  font-size:15px;
+  overflow-x:hidden;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--black2)}
+::-webkit-scrollbar-thumb{background:var(--red-dim);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--red)}
+
+/* ── animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes slideRight{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(204,0,0,.4)}50%{box-shadow:0 0 22px rgba(204,0,0,.75)}}
+
+/* ════════════════════════════════════
+   LAYOUT SHELL
+════════════════════════════════════ */
+.shell{display:flex;flex-direction:row-reverse;min-height:100vh}
+
+/* ════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════ */
+.sidebar{
+  width:248px;flex-shrink:0;
+  background:var(--black2);
+  border-left:1px solid var(--red-brd);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+  overflow-y:auto;z-index:100;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+
+/* top brand */
+.sb-brand{
+  padding:22px 18px 18px;
+  border-bottom:1px solid var(--border);
+}
+.brand-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.brand-ico{
+  width:42px;height:42px;border-radius:11px;
+  background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+  box-shadow:0 0 18px rgba(204,0,0,.5);
+  animation:glow 3s ease-in-out infinite;
+}
+.brand-txt{font-size:13px;font-weight:900;line-height:1.3;color:var(--white)}
+.brand-txt span{color:var(--red);display:block;font-size:11px;font-weight:700;margin-top:1px}
+
+.user-row{display:flex;align-items:center;gap:10px}
+.user-av{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;flex-shrink:0;
+  border:2px solid rgba(204,0,0,.4);
+}
+.user-name{font-size:13px;font-weight:700;color:var(--white)}
+.user-sub{font-size:10px;color:var(--grey);margin-top:1px}
+
+/* nav */
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-sep{
+  font-size:9px;font-weight:800;letter-spacing:1.2px;
+  color:var(--grey2);text-transform:uppercase;
+  padding:8px 12px 6px;margin-top:8px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--rs);
+  margin-bottom:2px;font-size:13px;font-weight:600;
+  color:var(--grey);border:1px solid transparent;
+  cursor:pointer;transition:all .18s;user-select:none;
+}
+.nav-item:hover{background:var(--black4);color:var(--white)}
+.nav-item.active{
+  background:var(--red-bg);
+  color:var(--red-l);
+  border-color:var(--red-brd);
+  font-weight:800;
+}
+.nav-ico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-right:auto;
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:800;
+  padding:1px 7px;border-radius:20px;
+}
+
+/* subject nav items (dynamic) */
+.nav-subj{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 12px 8px 10px;border-radius:var(--rs);
+  margin-bottom:2px;font-size:12.5px;font-weight:600;
+  color:var(--grey);border:1px solid transparent;
+  cursor:pointer;transition:all .18s;
+}
+.nav-subj:hover{background:var(--black4);color:var(--white)}
+.nav-subj.active{background:var(--red-bg);color:var(--red-l);border-color:var(--red-brd);font-weight:800}
+.subj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* footer */
+.sb-foot{padding:10px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px}
+.foot-btn{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 12px;border-radius:var(--rs);
+  font-size:12.5px;font-weight:600;cursor:pointer;
+  border:1px solid var(--border2);background:transparent;
+  color:var(--grey);font-family:var(--font);
+  transition:all .18s;width:100%;
+}
+.foot-btn:hover{background:var(--black4);color:var(--white)}
+.foot-btn.out{border-color:var(--red-brd);color:var(--red-l);background:var(--red-bg)}
+.foot-btn.out:hover{background:var(--red-bg2)}
+
+/* ════════════════════════════════════
+   MAIN AREA
+════════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:58px;
+  background:var(--black);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:90;
+}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-menu{
+  padding:7px 9px;border-radius:var(--rs);
+  border:1px solid var(--border2);background:var(--black3);
+  color:var(--grey);cursor:pointer;font-size:16px;
+  transition:all .18s;
+}
+.tb-menu:hover{background:var(--black4);color:var(--white)}
+.tb-title{font-size:17px;font-weight:900;color:var(--white)}
+.tb-title span{color:var(--red)}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-btn{
+  padding:7px 15px;border-radius:var(--rs);
+  border:1px solid var(--border2);background:var(--black3);
+  color:var(--grey);font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  display:flex;align-items:center;gap:6px;
+  transition:all .18s;
+}
+.tb-btn:hover{background:var(--black4);color:var(--white)}
+.tb-btn.primary{
+  background:var(--red);color:#fff;border:none;
+  box-shadow:0 3px 14px rgba(204,0,0,.45);
+}
+.tb-btn.primary:hover{background:var(--red-h);transform:translateY(-1px);box-shadow:0 5px 20px rgba(204,0,0,.6)}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--red-l);animation:pulse 1.6s infinite;flex-shrink:0}
+
+/* ════════════════════════════════════
+   PAGES
+════════════════════════════════════ */
+.content{padding:24px 26px}
+.page{display:none}
+.page.active{display:block;animation:fadeUp .28s ease both}
+
+/* ════════════════════════════════════
+   REUSABLE COMPONENTS
+════════════════════════════════════ */
+
+/* card */
+.card{
+  background:var(--black2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+}
+.card-hd{
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-ttl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--grey)}
+.card-bd{padding:18px}
+
+/* banner */
+.banner{
+  background:var(--black2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:22px 26px;
+  margin-bottom:22px;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.banner::before{
+  content:'';position:absolute;top:-50px;right:-50px;
+  width:200px;height:200px;
+  background:radial-gradient(circle,rgba(204,0,0,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.banner::after{
+  content:'';position:absolute;bottom:-40px;left:-40px;
+  width:150px;height:150px;
+  background:radial-gradient(circle,rgba(204,0,0,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.banner-title{font-size:21px;font-weight:900;margin-bottom:4px}
+.banner-title span{color:var(--red)}
+.banner-sub{font-size:13px;color:var(--grey)}
+.banner-pill{
+  background:var(--red-bg);border:1px solid var(--red-brd);
+  border-radius:50px;padding:9px 20px;
+  font-size:12px;font-weight:800;color:var(--red-l);
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* stat cards */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{
+  background:var(--black2);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px 20px;
+  position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+  cursor:default;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:2px;border-radius:var(--r) var(--r) 0 0;
+  background:var(--c,var(--red));
+}
+.stat-card:hover{transform:translateY(-3px);border-color:var(--c,var(--red-brd));box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.stat-ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:11px;background:var(--red-bg)}
+.stat-lbl{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--grey2);margin-bottom:7px}
+.stat-val{font-size:26px;font-weight:900;color:var(--c,var(--red-l));line-height:1;margin-bottom:3px}
+.stat-sub{font-size:11px;color:var(--grey2)}
+
+/* section heading */
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-t{
+  font-size:10px;font-weight:800;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--grey2);
+  display:flex;align-items:center;gap:8px;
+}
+.sec-t::before{content:'';display:block;width:3px;height:13px;background:var(--red);border-radius:2px}
+.sec-lnk{font-size:12px;color:var(--red);font-weight:700;cursor:pointer;border:none;background:none;font-family:var(--font)}
+.sec-lnk:hover{color:var(--red-l)}
+
+/* grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+
+/* FORM */
+.field{margin-bottom:13px}
+.f-lbl{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);margin-bottom:6px}
+.f-inp{
+  width:100%;padding:10px 13px;
+  background:var(--black3);border:1px solid var(--border2);
+  border-radius:var(--rs);color:var(--white);
+  font-size:13.5px;font-family:var(--font);outline:none;
+  transition:border-color .18s,box-shadow .18s;
+}
+.f-inp:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(204,0,0,.12)}
+.f-inp::placeholder{color:var(--grey2)}
+.f-inp option{background:var(--black3)}
+.g2-form{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+/* pct preview */
+.pct-prev{
+  display:none;
+  background:var(--black3);border:1px solid var(--red-brd);
+  border-radius:9px;padding:12px;text-align:center;margin-bottom:12px;
+}
+.pct-prev-lbl{font-size:10px;color:var(--grey);margin-bottom:3px}
+.pct-prev-num{font-size:32px;font-weight:900;line-height:1}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:10px 18px;border-radius:var(--rs);
+  font-size:13px;font-weight:800;cursor:pointer;
+  font-family:var(--font);border:none;
+  transition:all .18s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-red{
+  background:var(--red);color:#fff;
+  box-shadow:0 3px 14px rgba(204,0,0,.4);
+  width:100%;padding:12px;font-size:14px;
+}
+.btn-red:hover{background:var(--red-h);box-shadow:0 5px 20px rgba(204,0,0,.55)}
+.btn-ghost{background:var(--black4);color:var(--grey);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--black5);color:var(--white)}
+.btn-edit{
+  padding:5px 11px;border-radius:6px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  color:var(--blue);border:1px solid rgba(59,130,246,.25);
+  background:rgba(59,130,246,.08);transition:all .18s;
+}
+.btn-edit:hover{background:rgba(59,130,246,.18)}
+.btn-del{
+  padding:5px 11px;border-radius:6px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  color:var(--red-l);border:1px solid var(--red-brd);
+  background:var(--red-bg);transition:all .18s;
+}
+.btn-del:hover{background:var(--red-bg2)}
+.btn-save{background:#1d4ed8;color:#fff;box-shadow:0 3px 12px rgba(29,78,216,.4);width:100%;padding:12px;font-size:14px}
+.btn-save:hover{background:#2563eb}
+.btn-back{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:var(--rs);
+  border:1px solid var(--border2);background:var(--black3);
+  color:var(--grey);font-size:13px;font-weight:700;
+  cursor:pointer;font-family:var(--font);
+  transition:all .18s;margin-bottom:18px;
+}
+.btn-back:hover{background:var(--black4);color:var(--white)}
+
+/* error */
+.f-err{color:var(--red-l);font-size:12px;margin-bottom:11px;display:none;font-weight:600}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:800}
+.b-green{background:rgba(34,197,94,.13);color:var(--green)}
+.b-amber{background:rgba(245,158,11,.13);color:var(--amber)}
+.b-red  {background:var(--red-bg);color:var(--red-l)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+th{
+  padding:10px 14px;text-align:right;
+  font-size:10px;font-weight:800;
+  color:var(--grey2);text-transform:uppercase;letter-spacing:.4px;
+  white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:background .14s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--black3)}
+td{padding:11px 14px;font-size:13px}
+.td-actions{display:flex;gap:6px;align-items:center}
+
+/* EMPTY STATE */
+.empty{padding:38px;text-align:center;color:var(--grey2)}
+.empty-ico{font-size:32px;margin-bottom:9px;display:block}
+
+/* progress bar */
+.prog-bar{height:3px;background:var(--black5);border-radius:3px;overflow:hidden;margin-top:9px}
+.prog-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* BAR CHART */
+.bar-chart{display:flex;align-items:flex-end;gap:7px;height:170px;padding:0 2px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.bar{width:100%;border-radius:5px 5px 0 0;cursor:pointer;transition:opacity .18s;min-height:4px}
+.bar:hover{opacity:.75}
+.bar-lbl{font-size:11px;color:var(--grey2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+
+/* RING */
+.ring-card{
+  background:var(--black2);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px 14px;text-align:center;
+  transition:transform .2s,border-color .2s;cursor:pointer;
+}
+.ring-card:hover{transform:translateY(-3px);border-color:var(--red-brd)}
+.ring-name{font-size:13px;font-weight:800;margin-top:9px;margin-bottom:2px}
+.ring-cnt{font-size:10px;color:var(--grey2)}
+
+/* COUNTDOWN */
+.cd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.cd-unit{background:var(--black3);border:1px solid var(--border2);border-radius:9px;padding:14px 8px;text-align:center}
+.cd-num{font-size:30px;font-weight:900;color:var(--red-l);line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.cd-lbl{font-size:10px;color:var(--grey2);font-weight:700}
+.cd-btns{display:flex;gap:9px}
+.cd-go{flex:2;padding:10px;border-radius:var(--rs);background:var(--red);color:#fff;font-size:14px;font-weight:800;cursor:pointer;border:none;font-family:var(--font);transition:all .18s;box-shadow:0 3px 12px rgba(204,0,0,.4)}
+.cd-go:hover{background:var(--red-h);transform:translateY(-1px)}
+.cd-rst{flex:1;padding:10px;border-radius:var(--rs);background:var(--black4);color:var(--grey);font-size:14px;font-weight:800;cursor:pointer;border:1px solid var(--border2);font-family:var(--font);transition:all .18s}
+.cd-rst:hover{background:var(--black5);color:var(--white)}
+
+/* mode tabs */
+.mode-tabs{display:flex;gap:5px}
+.mode-tab{padding:4px 13px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--font);border:1px solid var(--border2);background:transparent;color:var(--grey);transition:all .18s}
+.mode-tab.on{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* strip */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:20px}
+.strip-item{background:var(--black2);border:1px solid var(--border);border-radius:10px;padding:13px 15px}
+.strip-lbl{font-size:10px;color:var(--grey2);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.strip-val{font-size:19px;font-weight:900}
+
+/* MODAL */
+.modal-ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.82);z-index:300;
+  align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(6px);
+}
+.modal-ov.open{display:flex;animation:fadeIn .2s ease}
+.modal-box{
+  background:var(--black2);border:1px solid var(--red-brd);
+  border-radius:16px;padding:30px;
+  width:100%;max-width:480px;
+  position:relative;animation:slideRight .22s ease;
+}
+.modal-box h2{font-size:19px;font-weight:900;margin-bottom:20px;color:var(--white)}
+.modal-x{
+  position:absolute;top:14px;left:14px;
+  width:28px;height:28px;border-radius:50%;
+  background:var(--black4);border:none;
+  color:var(--grey);font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;
+}
+.modal-x:hover{background:var(--red);color:#fff}
+
+/* SUBJECT DETAIL HEADER */
+.sdh{
+  background:var(--black2);border:1px solid var(--border);
+  border-radius:var(--r);padding:22px 24px;
+  margin-bottom:20px;display:flex;align-items:center;gap:16px;
+  position:relative;overflow:hidden;
+}
+.sdh::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(204,0,0,.14) 0%,transparent 70%);pointer-events:none}
+.sdh-ico{
+  width:52px;height:52px;border-radius:13px;
+  background:var(--red-bg);border:1px solid var(--red-brd);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:var(--red-l);flex-shrink:0;
+}
+.sdh-name{font-size:20px;font-weight:900;margin-bottom:3px}
+.sdh-meta{font-size:12.5px;color:var(--grey)}
+.sdh-meta b{color:var(--red-l)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  padding:12px 20px;border-radius:9px;
+  font-size:13px;font-weight:800;font-family:var(--font);
+  z-index:999;pointer-events:none;
+  animation:fadeUp .28s ease;
+}
+.toast-ok{background:var(--green);color:#000}
+.toast-err{background:var(--red);color:#fff}
+.toast-info{background:var(--black4);color:var(--white);border:1px solid var(--border2)}
+
+/* RESPONSIVE */
+/* ════════════════════════════════════════
+   RESPONSIVE — Mobile-first breakpoints
+════════════════════════════════════════ */
+
+/* ── Tablet landscape / small desktop ── */
+@media(max-width:1100px){
+  .stats-grid{ grid-template-columns:repeat(2,1fr) }
+  .g4{         grid-template-columns:repeat(3,1fr) }
+}
+
+/* ── Tablet portrait ── */
+@media(max-width:820px){
+  .sidebar{ width:210px }
+  .g2{  grid-template-columns:1fr }
+  .strip{ grid-template-columns:repeat(2,1fr) }
+  .g4{  grid-template-columns:repeat(2,1fr) }
+  .two-col{ grid-template-columns:1fr }
+  .g3{  grid-template-columns:repeat(2,1fr) }
+  .cd-grid{ grid-template-columns:repeat(2,1fr) }
+  #d-subj-analysis{ grid-template-columns:1fr }
+}
+
+/* ── Mobile ── */
+@media(max-width:640px){
+  /* Sidebar becomes off-canvas drawer */
+  .sidebar{
+    position:fixed;
+    transform:translateX(100%);
+    z-index:200;
+    width:260px;
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .sidebar.open{ transform:translateX(0) }
+
+  /* Main area fills full width */
+  .main-area{ margin-left:0 }
+
+  /* Content padding */
+  .content{ padding:14px 12px }
+  .page-content{ padding:14px 12px !important }
+
+  /* Typography scale down */
+  .banner-title{ font-size:17px !important }
+  .banner-sub{   font-size:12px !important }
+  .sdh-name{     font-size:16px !important }
+  .card-ttl{     font-size:10px }
+
+  /* Grids → single column on phone */
+  .stats-grid{ grid-template-columns:1fr 1fr }
+  .g4{         grid-template-columns:1fr 1fr }
+  .g2{         grid-template-columns:1fr }
+  .g3{         grid-template-columns:1fr }
+  .strip{      grid-template-columns:1fr 1fr }
+  .rings-grid{ grid-template-columns:1fr 1fr }
+  #d-subj-analysis{ grid-template-columns:1fr }
+
+  /* Weekly report grids */
+  #page-weekly-report .page-content{ padding:14px 12px !important }
+  #page-weekly-report [style*="grid-template-columns:1fr 1fr"]{
+    grid-template-columns:1fr !important;
+  }
+  #page-weekly-report [style*="grid-template-columns:repeat(4"]{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  /* Cards */
+  .card-bd{ padding:14px }
+  .card-hd{ padding:12px 14px; flex-wrap:wrap; gap:8px }
+
+  /* Countdown units */
+  .cd-grid{ grid-template-columns:repeat(2,1fr) }
+  .cd-num{  font-size:26px }
+
+  /* Table — horizontal scroll */
+  .tbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+  table{     min-width:480px }
+  th, td{    padding:9px 10px; font-size:12px }
+
+  /* Topbar */
+  .topbar{ padding:0 12px; height:52px }
+  .tb-title{ font-size:14px }
+  .tb-btn{   padding:6px 10px; font-size:12px }
+
+  /* Sidebar brand */
+  .sb-brand{ padding:16px 14px 14px }
+  .brand-logo-title{ font-size:18px }
+
+  /* Buttons touch-friendly */
+  .btn{ padding:11px 16px; font-size:13px }
+  .btn-red{ padding:13px; font-size:14px }
+  .auth-btn{ padding:13px; font-size:14px }
+  .cd-go, .cd-rst{ padding:12px; font-size:13px }
+
+  /* Forms */
+  .g2-form{ grid-template-columns:1fr !important }
+  .f-inp{   font-size:16px }  /* prevent iOS zoom */
+  .auth-input{ font-size:16px }
+
+  /* Auth card */
+  .auth-card{ padding:24px 16px }
+  .auth-mode-wrap{ margin-bottom:18px }
+
+  /* Subject detail strips */
+  .strip{ grid-template-columns:1fr 1fr }
+
+  /* Progress rings */
+  .ring-card{ padding:16px 10px }
+
+  /* Subject cards font */
+  .subj-name{ font-size:13px }
+  .subj-score{ font-size:20px }
+
+  /* Charts */
+  canvas{ max-height:200px }
+
+  /* Quick modal */
+  .modal-box{ padding:22px 16px; border-radius:14px }
+  .modal-box h2{ font-size:17px }
+
+  /* Suggestions */
+  .suggest-grid{ grid-template-columns:1fr }
+
+  /* Big countdown timer */
+  #big-timer{ font-size:52px !important }
+
+  /* Profile banner avatar */
+  #page-profile .banner{ flex-direction:column; align-items:flex-start; gap:12px }
+}
+
+/* ── Very small phones (< 380px) ── */
+@media(max-width:380px){
+  .stats-grid{ grid-template-columns:1fr }
+  .g4{         grid-template-columns:1fr }
+  .strip{      grid-template-columns:1fr }
+  .cd-grid{    grid-template-columns:repeat(2,1fr) }
+  .auth-card{  padding:20px 12px }
+  .content{    padding:10px }
+  .topbar{     padding:0 8px }
+}
+
+/* ── Prevent horizontal overflow globally ── */
+*, *::before, *::after{ max-width:100% }
+img, canvas, svg{ max-width:100%; height:auto }
+.shell{ overflow-x:hidden }
+body{ overflow-x:hidden }
+
+/* ── Suggestions ── */
+.suggest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.suggest-card{
+  border-radius:var(--r);padding:16px 18px;
+  display:flex;align-items:flex-start;gap:13px;
+  border:1px solid;
+  transition:transform .2s;
+}
+.suggest-card:hover{transform:translateY(-2px)}
+.suggest-card.danger {background:rgba(204,0,0,.08);  border-color:rgba(204,0,0,.25)}
+.suggest-card.warning{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25)}
+.suggest-card.success{background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.25)}
+.suggest-card.info   {background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.25)}
+.sug-ico{font-size:22px;flex-shrink:0;margin-top:1px}
+.sug-title{font-size:13px;font-weight:800;margin-bottom:4px}
+.sug-card.danger  .sug-title{color:var(--red-l)}
+.sug-card.warning .sug-title{color:var(--amber)}
+.sug-card.success .sug-title{color:var(--green)}
+.sug-card.info    .sug-title{color:var(--blue)}
+.sug-body{font-size:12px;color:var(--grey);line-height:1.6}
+
+/* ── LOGIN PAGE ── */
+/* ════════════════════════════════════════
+   AUTH PAGE — centered, card style
+════════════════════════════════════════ */
+#loginPage{
+  position:fixed;inset:0;
+  background:var(--black);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;z-index:9999;
+}
+
+.auth-card{
+  background:var(--black2);
+  border:1px solid var(--red-brd);
+  border-radius:16px;
+  padding:36px 32px;
+  width:100%;max-width:420px;
+  box-shadow:0 0 60px rgba(204,0,0,.12);
+}
+
+.auth-logo{
+  text-align:center;margin-bottom:28px;
+}
+.auth-logo-icon{
+  width:54px;height:54px;border-radius:14px;
+  background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;margin:0 auto 12px;
+  box-shadow:0 0 24px rgba(204,0,0,.45);
+}
+.auth-logo-title{
+  font-size:20px;font-weight:900;
+  background:linear-gradient(90deg,var(--red-l),#ff6b6b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.auth-logo-sub{font-size:12px;color:var(--grey);margin-top:3px}
+
+.auth-mode-wrap{
+  display:flex;background:var(--black3);
+  border-radius:10px;padding:4px;
+  margin-bottom:24px;gap:4px;
+}
+.auth-mode-btn{
+  flex:1;padding:9px;border-radius:8px;
+  font-size:13px;font-weight:800;
+  cursor:pointer;font-family:var(--font);
+  border:none;background:transparent;
+  color:var(--grey);transition:all .2s;
+}
+.auth-mode-btn.active{
+  background:var(--red);color:#fff;
+  box-shadow:0 3px 10px rgba(204,0,0,.4);
+}
+
+.auth-title{
+  font-size:18px;font-weight:900;
+  color:var(--white);margin-bottom:4px;
+}
+.auth-sub{
+  font-size:12px;color:var(--grey);
+  margin-bottom:20px;
+}
+
+.auth-input{
+  width:100%;padding:11px 14px;
+  background:var(--black3);
+  border:1px solid var(--border2);
+  border-radius:var(--rs);
+  color:var(--white);font-size:14px;
+  font-family:var(--font);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  margin-bottom:11px;display:block;
+}
+.auth-input:focus{
+  border-color:var(--red);
+  box-shadow:0 0 0 3px rgba(204,0,0,.1);
+}
+.auth-input::placeholder{color:var(--grey2)}
+
+.auth-btn{
+  width:100%;padding:13px;
+  border-radius:var(--rs);
+  background:var(--red);color:#fff;
+  font-size:15px;font-weight:800;
+  border:none;cursor:pointer;
+  font-family:var(--font);
+  box-shadow:0 4px 18px rgba(204,0,0,.4);
+  transition:all .2s;margin-top:4px;
+}
+.auth-btn:hover{
+  background:var(--red-h);
+  transform:translateY(-1px);
+  box-shadow:0 6px 24px rgba(204,0,0,.55);
+}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+.auth-msg{
+  padding:10px 14px;border-radius:8px;
+  font-size:13px;font-weight:600;
+  margin-bottom:14px;display:none;
+}
+.auth-msg.error{
+  background:rgba(204,0,0,.12);
+  border:1px solid var(--red-brd);
+  color:var(--red-l);
+}
+.auth-msg.success{
+  background:rgba(34,197,94,.1);
+  border:1px solid rgba(34,197,94,.25);
+  color:var(--green);
+}
+
+@media(max-width:480px){
+  .auth-card{padding:28px 18px}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH PAGE ══ -->
+<div id="loginPage">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📊</div>
+      <div class="auth-logo-title">Student Tracker</div>
+      <div class="auth-logo-sub">Track your academic progress</div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="auth-mode-wrap">
+      <button class="auth-mode-btn active" id="tabLogin"    onclick="switchAuthTab('login')">تسجيل الدخول</button>
+      <button class="auth-mode-btn"        id="tabRegister" onclick="switchAuthTab('register')">حساب جديد</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="authMsg" class="auth-msg"></div>
+
+    <!-- LOGIN PANEL -->
+    <div id="panelLogin">
+      <div class="auth-title">مرحباً بك 👋</div>
+      <div class="auth-sub">سجّل دخولك لمتابعة درجاتك</div>
+      <input class="auth-input" id="loginEmail"    type="email"    placeholder="الإيميل"  autocomplete="email"/>
+      <input class="auth-input" id="loginPassword" type="password" placeholder="الباسورد" autocomplete="current-password"/>
+      <button class="auth-btn" id="loginBtn" onclick="doLogin()">تسجيل الدخول</button>
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div id="panelRegister" style="display:none">
+      <div class="auth-title">إنشاء حساب جديد 🎓</div>
+      <div class="auth-sub">أنشئ حسابك وابدأ تتابع درجاتك</div>
+      <input class="auth-input" id="regName"     type="text"     placeholder="الاسم الكامل"/>
+      <input class="auth-input" id="regEmail"    type="email"    placeholder="الإيميل" autocomplete="email"/>
+      <input class="auth-input" id="regPassword" type="password" placeholder="الباسورد (6 أحرف على الأقل)" autocomplete="new-password"/>
+      <input class="auth-input" id="regConfirm"  type="password" placeholder="تأكيد الباسورد"/>
+      <button class="auth-btn" id="registerBtn" onclick="doRegister()">إنشاء الحساب</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ MAIN APP (hidden until logged in) ══ -->
+<div id="mainApp" style="display:none;">
+
+<div class="shell">
+
+<!-- ══════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+
+  <div class="sb-brand">
+    <div class="brand-row">
+      <div class="brand-ico">📊</div>
+      <div class="brand-txt">Student Tracker<span>Track your academic progress</span></div>
+    </div>
+    <div class="user-row">
+      <div class="user-av">أ</div>
+      <div>
+        <div class="user-name">أحمد حسن</div>
+        <div class="user-sub">الصف الثاني الثانوي · قسم الرياضة</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-sep">الرئيسية</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-ico">🏠</span>لوحة التحكم
+    </div>
+    <div class="nav-item" onclick="showPage('all-subjects',this)">
+      <span class="nav-ico">📚</span>المواد الدراسية
+      <span class="nav-badge" id="nb-count">7</span>
+    </div>
+    <div class="nav-item" onclick="showPage('comprehensive',this)">
+      <span class="nav-ico">📝</span>الامتحانات الشاملة
+    </div>
+    <div class="nav-item" onclick="showPage('countdown',this)">
+      <span class="nav-ico">⏱</span>العداد التنازلي
+    </div>
+    <div class="nav-item" onclick="showPage('weekly-report',this)">
+      <span class="nav-ico">📊</span>التقرير الأسبوعي
+    </div>
+
+    <div class="nav-sep">المواد</div>
+    <div id="sb-subjects"><!-- JS renders --></div>
+
+    <div class="nav-sep">الحساب</div>
+    <div class="nav-item" onclick="showPage('profile',this)">
+      <span class="nav-ico">👤</span>ملفي الشخصي
+    </div>
+  </nav>
+
+  <div class="sb-foot">
+    <button class="foot-btn out" onclick="logout()">🚪 تسجيل الخروج</button>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════
+     MAIN
+══════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-left">
+      <button class="tb-menu" onclick="toggleSidebar()">☰</button>
+      <div class="tb-title" id="tb-title">لوحة <span>التحكم</span></div>
+    </div>
+    <div class="tb-right">
+      <button class="tb-btn" onclick="openQuickAdd()">
+        <div class="pulse-dot"></div>إضافة سريعة
+      </button>
+      <button class="tb-btn primary" onclick="openQuickAdd()">+ امتحان</button>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ══════════════════════════════════
+         PAGE: DASHBOARD
+    ══════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="banner">
+        <div>
+          <div class="banner-title">أهلاً، <span>أحمد</span> 👋</div>
+          <div class="banner-sub">تابع أداءك الدراسي من مكان واحد</div>
+        </div>
+        <div class="banner-pill" id="dash-pill">الفصل الدراسي الأول 2024–2025</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card" style="--c:var(--red)">
+          <div class="stat-ico">📊</div>
+          <div class="stat-lbl">المتوسط العام</div>
+          <div class="stat-val" id="d-avg">--%</div>
+          <div class="stat-sub">جميع المواد</div>
+        </div>
+        <div class="stat-card" style="--c:var(--green)">
+          <div class="stat-ico" style="background:rgba(34,197,94,.1)">🏆</div>
+          <div class="stat-lbl">أفضل مادة</div>
+          <div class="stat-val" style="font-size:17px;color:var(--green)" id="d-best">--</div>
+          <div class="stat-sub" id="d-best-pct">--</div>
+        </div>
+        <div class="stat-card" style="--c:var(--amber)">
+          <div class="stat-ico" style="background:rgba(245,158,11,.1)">⚠️</div>
+          <div class="stat-lbl">أضعف مادة</div>
+          <div class="stat-val" style="font-size:17px;color:var(--amber)" id="d-weak">--</div>
+          <div class="stat-sub" id="d-weak-pct">--</div>
+        </div>
+        <div class="stat-card" style="--c:var(--blue)">
+          <div class="stat-ico" style="background:rgba(59,130,246,.1)">📋</div>
+          <div class="stat-lbl">إجمالي الامتحانات</div>
+          <div class="stat-val" style="color:var(--blue)" id="d-count">0</div>
+          <div class="stat-sub">مدخلة</div>
+        </div>
+      </div>
+
+      <!-- ── Analytics row 2: highest / lowest / active subjects / status ── -->
+      <div class="stats-grid" style="margin-top:-8px;margin-bottom:22px">
+        <div class="stat-card" style="--c:var(--green)">
+          <div class="stat-ico" style="background:rgba(34,197,94,.1)">⬆️</div>
+          <div class="stat-lbl">أعلى درجة</div>
+          <div class="stat-val" style="color:var(--green)" id="d-hi">--%</div>
+          <div class="stat-sub" id="d-hi-sub">--</div>
+        </div>
+        <div class="stat-card" style="--c:var(--red)">
+          <div class="stat-ico">⬇️</div>
+          <div class="stat-lbl">أدنى درجة</div>
+          <div class="stat-val" id="d-lo">--%</div>
+          <div class="stat-sub" id="d-lo-sub">--</div>
+        </div>
+        <div class="stat-card" style="--c:var(--blue)">
+          <div class="stat-ico" style="background:rgba(59,130,246,.1)">📚</div>
+          <div class="stat-lbl">المواد النشطة</div>
+          <div class="stat-val" style="color:var(--blue)" id="d-active">0</div>
+          <div class="stat-sub">من أصل 7</div>
+        </div>
+        <div class="stat-card" style="--c:var(--amber)">
+          <div class="stat-ico" style="background:rgba(245,158,11,.1)">🎯</div>
+          <div class="stat-lbl">مستوى الأداء</div>
+          <div class="stat-val" style="font-size:16px;color:var(--amber)" id="d-level">--</div>
+          <div class="stat-sub">بناءً على المتوسط</div>
+        </div>
+      </div>
+
+      <!-- subject cards -->
+      <div class="sec-h">
+        <div class="sec-t">المواد الدراسية</div>
+        <button class="sec-lnk" onclick="showPage('all-subjects',null)">عرض الكل ←</button>
+      </div>
+      <div class="g4" id="d-subj-grid" style="margin-bottom:16px"><!-- JS --></div>
+
+      <!-- Subject analysis strips -->
+      <div class="sec-h" style="margin-bottom:12px">
+        <div class="sec-t">تحليل تفصيلي للمواد</div>
+      </div>
+      <div id="d-subj-analysis" style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:24px"><!-- JS --></div>
+
+      <!-- chart + mini countdown -->
+      <div class="g2" style="margin-bottom:24px">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-ttl">📊 مقارنة المواد بالدرجات</div>
+            <div id="d-chart-legend" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+          </div>
+          <div class="card-bd">
+            <canvas id="d-chart" height="170"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-ttl">⏱ عداد سريع</div>
+            <div class="mode-tabs">
+              <button class="mode-tab on" onclick="switchMode('m',this)">يدوي</button>
+              <button class="mode-tab" onclick="switchMode('d',this)">تاريخ</button>
+            </div>
+          </div>
+          <div class="card-bd">
+            <div id="mini-manual">
+              <div class="cd-grid">
+                <div class="cd-unit"><div class="cd-num" id="mh">00</div><div class="cd-lbl">ساعة</div></div>
+                <div class="cd-unit"><div class="cd-num" id="mm">00</div><div class="cd-lbl">دقيقة</div></div>
+                <div class="cd-unit"><div class="cd-num" id="ms">00</div><div class="cd-lbl">ثانية</div></div>
+                <div class="cd-unit" style="background:var(--red-bg);border-color:var(--red-brd)">
+                  <div class="cd-num" id="mst" style="font-size:20px">⏸</div>
+                  <div class="cd-lbl">الحالة</div>
+                </div>
+              </div>
+              <div class="cd-btns">
+                <button class="cd-go" id="mini-btn" onclick="toggleMini()">▶ ابدأ</button>
+                <button class="cd-rst" onclick="resetMini()">↺ إعادة</button>
+              </div>
+            </div>
+            <div id="mini-date" style="display:none">
+              <div class="g2-form" style="margin-bottom:11px">
+                <div><label class="f-lbl">البداية</label><input type="date" class="f-inp" id="md-s"/></div>
+                <div><label class="f-lbl">الامتحان</label><input type="date" class="f-inp" id="md-e"/></div>
+              </div>
+              <button class="btn btn-red" style="margin-bottom:14px;font-size:13px;padding:10px" onclick="calcMiniDays()">احسب</button>
+              <div id="mini-res" style="display:none;background:var(--black3);border:1px solid var(--border2);border-radius:9px;padding:16px;text-align:center">
+                <div style="font-size:52px;font-weight:900;color:var(--red-l);line-height:1" id="mini-days">0</div>
+                <div style="font-size:12px;color:var(--grey);margin-top:5px">يوم متبق</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- rings -->
+      <div class="sec-h"><div class="sec-t">مؤشرات الأداء</div></div>
+      <div class="g4" id="d-rings" style="margin-bottom:24px"><!-- JS --></div>
+
+      <!-- AI Suggestions -->
+      <div class="sec-h"><div class="sec-t">💡 توصيات ذكية</div></div>
+      <div id="suggestions-box" style="margin-bottom:8px"><!-- JS renders --></div>
+    </div><!-- /dashboard -->
+
+
+    <!-- ══════════════════════════════════
+         PAGE: ALL SUBJECTS
+    ══════════════════════════════════ -->
+    <div class="page" id="page-all-subjects">
+      <div class="banner" style="margin-bottom:22px">
+        <div>
+          <div class="banner-title">المواد <span>الدراسية</span></div>
+          <div class="banner-sub">اختر مادة لعرض امتحاناتها وإدارتها</div>
+        </div>
+      </div>
+      <div class="g4" id="as-grid"><!-- JS --></div>
+    </div>
+
+
+    <!-- ══════════════════════════════════
+         PAGE: SUBJECT DETAIL
+    ══════════════════════════════════ -->
+    <div class="page" id="page-subject">
+      <button class="btn-back" onclick="backFromSubject()">← العودة</button>
+
+      <!-- header -->
+      <div class="sdh">
+        <div class="sdh-ico" id="sd-ico">؟</div>
+        <div>
+          <div class="sdh-name" id="sd-name">--</div>
+          <div class="sdh-meta" id="sd-meta">0 امتحانات · متوسط <b>--%</b></div>
+        </div>
+      </div>
+
+      <!-- summary -->
+      <div class="strip">
+        <div class="strip-item">
+          <div class="strip-lbl">أعلى درجة</div>
+          <div class="strip-val" style="color:var(--green)" id="sd-hi">--%</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-lbl">أدنى درجة</div>
+          <div class="strip-val" style="color:var(--red-l)" id="sd-lo">--%</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-lbl">المتوسط</div>
+          <div class="strip-val" style="color:var(--amber)" id="sd-avg">--%</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-lbl">عدد الامتحانات</div>
+          <div class="strip-val" style="color:var(--blue)" id="sd-cnt">0</div>
+        </div>
+      </div>
+
+      <!-- form + chart -->
+      <div class="g2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-ttl" id="form-mode-lbl">➕ إضافة امتحان</div>
+          </div>
+          <div class="card-bd">
+            <input type="hidden" id="edit-id" value=""/>
+            <div class="field">
+              <label class="f-lbl">اسم الامتحان</label>
+              <input type="text" class="f-inp" id="f-name" placeholder="مثال: امتحان منتصف الفصل"/>
+            </div>
+            <div class="g2-form">
+              <div class="field">
+                <label class="f-lbl">الدرجة المحصلة</label>
+                <input type="number" class="f-inp" id="f-score" placeholder="85" min="0" oninput="calcPrev()"/>
+              </div>
+              <div class="field">
+                <label class="f-lbl">الدرجة الكلية</label>
+                <input type="number" class="f-inp" id="f-total" placeholder="100" min="1" oninput="calcPrev()"/>
+              </div>
+            </div>
+            <div class="pct-prev" id="pct-prev">
+              <div class="pct-prev-lbl">النسبة المحسوبة</div>
+              <div class="pct-prev-num" id="pct-prev-num">--%</div>
+            </div>
+            <div class="f-err" id="f-err"></div>
+            <button class="btn btn-red" id="f-submit" onclick="submitExam()">✓ إضافة الامتحان</button>
+            <button class="btn btn-ghost" id="f-cancel" onclick="cancelEdit()" style="display:none;margin-top:8px;width:100%;padding:11px">✕ إلغاء التعديل</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">📈 مخطط التقدم</div></div>
+          <div class="card-bd">
+            <div id="sd-chart-empty" class="empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:170px"><span class="empty-ico">📊</span>أضف امتحانات لرؤية المخطط</div>
+            <canvas id="sd-chart" height="170" style="display:none"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- table -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ttl">📋 سجل الامتحانات</div>
+          <div style="font-size:11px;color:var(--grey2)" id="tbl-cnt">0 امتحانات</div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم الامتحان</th>
+                <th>الدرجة</th>
+                <th>الكلية</th>
+                <th>النسبة %</th>
+                <th>تعديل</th>
+                <th>حذف</th>
+              </tr>
+            </thead>
+            <tbody id="sd-tbody">
+              <tr><td colspan="7"><div class="empty"><span class="empty-ico">📝</span>لا توجد امتحانات بعد</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /subject detail -->
+
+
+    <!-- ══════════════════════════════════
+         PAGE: COMPREHENSIVE
+    ══════════════════════════════════ -->
+    <div class="page" id="page-comprehensive">
+      <div class="banner" style="margin-bottom:22px">
+        <div>
+          <div class="banner-title">الامتحانات <span>الشاملة</span></div>
+          <div class="banner-sub">الدور الأول والثاني والامتحانات التجريبية — مقسمة حسب المادة</div>
+        </div>
+      </div>
+
+      <!-- Add form + chart -->
+      <div class="g2" style="margin-bottom:24px">
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl" id="c-form-lbl">➕ إضافة امتحان شامل</div></div>
+          <div class="card-bd">
+            <input type="hidden" id="c-edit-id" value=""/>
+            <div class="field">
+              <label class="f-lbl">المادة</label>
+              <select class="f-inp" id="c-subj">
+                <option value="">-- اختر المادة --</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="f-lbl">اسم الامتحان</label>
+              <input type="text" class="f-inp" id="c-name" placeholder="مثال: امتحان الدور الأول"/>
+            </div>
+            <div class="g2-form">
+              <div class="field">
+                <label class="f-lbl">الدرجة</label>
+                <input type="number" class="f-inp" id="c-score" placeholder="75" min="0" oninput="calcCompPrev()"/>
+              </div>
+              <div class="field">
+                <label class="f-lbl">الكلية</label>
+                <input type="number" class="f-inp" id="c-total" placeholder="100" min="1" oninput="calcCompPrev()"/>
+              </div>
+            </div>
+            <div class="pct-prev" id="c-pct">
+              <div class="pct-prev-lbl">النسبة المحسوبة</div>
+              <div class="pct-prev-num" id="c-pct-num">--%</div>
+            </div>
+            <div class="f-err" id="c-err"></div>
+            <button class="btn btn-red" id="c-submit" onclick="addComp()">✓ إضافة</button>
+            <button class="btn btn-ghost" id="c-cancel" onclick="cancelCompEdit()" style="display:none;margin-top:8px;width:100%;padding:11px">✕ إلغاء التعديل</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">📊 مقارنة المواد الشاملة</div></div>
+          <div class="card-bd">
+            <div id="comp-chart-empty" class="empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:170px"><span class="empty-ico">📊</span>لا بيانات بعد</div>
+            <canvas id="comp-chart" height="170" style="display:none"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-subject sections rendered by JS -->
+      <div id="comp-sections"></div>
+    </div>
+
+
+    <!-- ══════════════════════════════════
+         PAGE: COUNTDOWN
+    ══════════════════════════════════ -->
+    <div class="page" id="page-countdown">
+      <div class="banner" style="margin-bottom:22px">
+        <div>
+          <div class="banner-title">العداد <span>التنازلي</span></div>
+          <div class="banner-sub">تتبع الوقت المتبقي على امتحاناتك</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">⏱ العداد اليدوي</div></div>
+          <div class="card-bd" style="text-align:center;padding:30px 18px">
+            <div style="font-size:68px;font-weight:900;color:var(--red-l);font-variant-numeric:tabular-nums;letter-spacing:3px;line-height:1;margin-bottom:28px" id="big-timer">00:00:00</div>
+            <div style="display:flex;gap:11px;justify-content:center;max-width:280px;margin:0 auto">
+              <button class="cd-go" id="big-btn" onclick="toggleBig()" style="flex:2">▶ ابدأ</button>
+              <button class="cd-rst" onclick="resetBig()" style="flex:1">↺</button>
+            </div>
+            <div id="big-status" style="margin-top:18px;font-size:12px;color:var(--grey2)">العداد متوقف</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">📅 حساب الأيام المتبقية</div></div>
+          <div class="card-bd">
+            <div class="field">
+              <label class="f-lbl">عنوان الامتحان (اختياري)</label>
+              <input type="text" class="f-inp" id="pd-label" placeholder="مثال: امتحان الكيمياء"/>
+            </div>
+            <div class="g2-form" style="margin-bottom:13px">
+              <div><label class="f-lbl">تاريخ البداية</label><input type="date" class="f-inp" id="pd-s"/></div>
+              <div><label class="f-lbl">تاريخ الامتحان</label><input type="date" class="f-inp" id="pd-e"/></div>
+            </div>
+            <button class="btn btn-red" style="margin-bottom:16px;font-size:13px;padding:11px" onclick="calcFull()">احسب الأيام المتبقية</button>
+            <div id="pd-res" style="display:none;background:var(--black3);border:1px solid var(--red-brd);border-radius:10px;padding:20px;text-align:center">
+              <div style="font-size:10px;color:var(--grey);margin-bottom:5px" id="pd-title"></div>
+              <div style="font-size:68px;font-weight:900;color:var(--red-l);line-height:1" id="pd-days">0</div>
+              <div style="font-size:13px;color:var(--grey);margin-top:5px">يوم متبق</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:16px">
+                <div style="background:var(--black4);border-radius:8px;padding:10px">
+                  <div style="font-size:18px;font-weight:900" id="pd-wk">0</div>
+                  <div style="font-size:10px;color:var(--grey2)">أسابيع</div>
+                </div>
+                <div style="background:var(--black4);border-radius:8px;padding:10px">
+                  <div style="font-size:18px;font-weight:900" id="pd-hr">0</div>
+                  <div style="font-size:10px;color:var(--grey2)">ساعات</div>
+                </div>
+                <div style="background:var(--black4);border-radius:8px;padding:10px">
+                  <div style="font-size:18px;font-weight:900" id="pd-mo">0</div>
+                  <div style="font-size:10px;color:var(--grey2)">أشهر</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════
+         PAGE: PROFILE
+    ══════════════════════════════════ -->
+    <div class="page" id="page-profile">
+      <div class="banner" style="margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:58px;height:58px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;box-shadow:0 0 22px rgba(204,0,0,.5)">أ</div>
+          <div>
+            <div class="banner-title" style="font-size:20px">أحمد <span>حسن</span></div>
+            <div class="banner-sub">الصف الثاني الثانوي · قسم الرياضة</div>
+          </div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">👤 البيانات الشخصية</div></div>
+          <div class="card-bd">
+            <div class="field"><label class="f-lbl">الاسم الكامل</label><input type="text" class="f-inp" value="أحمد حسن محمد"/></div>
+            <div class="field"><label class="f-lbl">البريد الإلكتروني</label><input type="email" class="f-inp" value="ahmed@student.edu"/></div>
+            <div class="field"><label class="f-lbl">رقم الهاتف</label><input type="tel" class="f-inp" value="+20 100 123 4567"/></div>
+            <div class="field">
+              <label class="f-lbl">الصف الدراسي</label>
+              <select class="f-inp">
+                <option>الصف الأول الثانوي</option>
+                <option selected>الصف الثاني الثانوي</option>
+                <option>الصف الثالث الثانوي</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="f-lbl">الفصل الدراسي</label>
+              <select class="f-inp" id="prof-semester" onchange="updateDashPill()">
+                <option value="الفصل الدراسي الأول" selected>الفصل الدراسي الأول</option>
+                <option value="الفصل الدراسي الثاني">الفصل الدراسي الثاني</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="f-lbl">العام الدراسي</label>
+              <select class="f-inp" id="prof-year" onchange="updateDashPill()">
+                <option value="2024–2025" selected>2024–2025</option>
+                <option value="2025–2026">2025–2026</option>
+                <option value="2026–2027">2026–2027</option>
+                <option value="2027–2028">2027–2028</option>
+                <option value="2028–2029">2028–2029</option>
+                <option value="2029–2030">2029–2030</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="f-lbl">السنة الميلادية</label>
+              <input type="number" class="f-inp" id="birth-year" placeholder="مثال: 2008" min="1990" max="2015"/>
+            </div>
+            <button class="btn btn-save">💾 حفظ التغييرات</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-ttl">📊 إحصائياتي</div></div>
+          <div class="card-bd">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+              <div class="strip-item"><div class="strip-lbl">المتوسط العام</div><div class="strip-val" id="pr-avg" style="color:var(--red-l)">--%</div></div>
+              <div class="strip-item"><div class="strip-lbl">إجمالي الامتحانات</div><div class="strip-val" id="pr-tot" style="color:var(--blue)">0</div></div>
+              <div class="strip-item" style="margin-top:10px"><div class="strip-lbl">أفضل مادة</div><div class="strip-val" id="pr-best" style="color:var(--green);font-size:14px">--</div></div>
+              <div class="strip-item" style="margin-top:10px"><div class="strip-lbl">أضعف مادة</div><div class="strip-val" id="pr-weak" style="color:var(--amber);font-size:14px">--</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- ══════════════════════════════════
+     PAGE: WEEKLY REPORT
+══════════════════════════════════ -->
+<div class="page" id="page-weekly-report">
+  <div class="page-content fade-up" style="max-width:900px;margin:0 auto">
+
+    <!-- Banner -->
+    <div class="banner" style="margin-bottom:24px">
+      <div>
+        <div class="banner-title">التقرير <span>الأسبوعي</span></div>
+        <div class="banner-sub">ملخص أدائك من السبت إلى الجمعة — جاهز للإرسال على واتساب</div>
+      </div>
+      <div style="font-size:32px;flex-shrink:0">📱</div>
+    </div>
+
+    <!-- Week range cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div class="card" style="padding:18px 22px;border-top:2px solid var(--red)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📅 هذا الأسبوع</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600" id="wr-curr-range">--</div>
+      </div>
+      <div class="card" style="padding:18px 22px;border-top:2px solid var(--grey2)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📅 الأسبوع الماضي</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600" id="wr-prev-range">--</div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+      <div class="card" style="padding:20px 14px;text-align:center;border-top:2px solid var(--red)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">متوسط هذا الأسبوع</div>
+        <div style="font-size:30px;font-weight:900;color:var(--red-l)" id="wr-curr-avg">--%</div>
+      </div>
+      <div class="card" style="padding:20px 14px;text-align:center;border-top:2px solid var(--grey2)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">متوسط الأسبوع الماضي</div>
+        <div style="font-size:30px;font-weight:900;color:var(--grey)" id="wr-prev-avg">--%</div>
+      </div>
+      <div class="card" style="padding:20px 14px;text-align:center;border-top:2px solid var(--blue)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">عدد الامتحانات</div>
+        <div style="font-size:30px;font-weight:900;color:var(--blue)" id="wr-count">0</div>
+      </div>
+      <div class="card" style="padding:20px 14px;text-align:center;border-top:2px solid var(--green)">
+        <div style="font-size:10px;font-weight:800;color:var(--grey2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">الحالة</div>
+        <div style="font-size:22px;font-weight:900;line-height:1.3" id="wr-status">--</div>
+      </div>
+    </div>
+
+    <!-- Exams table -->
+    <div class="card" style="margin-bottom:22px">
+      <div class="card-hd"><div class="card-ttl">📋 امتحانات هذا الأسبوع</div></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>المادة</th><th>الامتحان</th><th>الدرجة</th><th>الكلية</th><th>النسبة</th><th>التاريخ</th></tr>
+          </thead>
+          <tbody id="wr-tbody">
+            <tr><td colspan="6"><div class="empty"><span class="empty-ico">📝</span>لا توجد امتحانات هذا الأسبوع</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Message preview -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-hd"><div class="card-ttl">💬 معاينة الرسالة</div></div>
+      <div class="card-bd">
+        <pre id="wr-preview" style="
+          white-space:pre-wrap;word-break:break-word;
+          background:var(--black3);border:1px solid var(--border2);
+          border-radius:9px;padding:18px;font-family:var(--font);
+          font-size:14px;color:var(--text);line-height:2;
+          max-height:240px;overflow-y:auto;margin:0;
+        ">اضغط "تحديث" لتوليد الرسالة</pre>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <button class="btn btn-red" style="padding:14px;font-size:14px;width:100%" onclick="refreshWeeklyReport()">
+        🔄 تحديث التقرير
+      </button>
+      <button class="btn btn-red" style="padding:14px;font-size:14px;width:100%;background:#25d366;box-shadow:0 4px 16px rgba(37,211,102,.35)" onclick="sendWhatsApp()">
+        📱 إرسال على واتساب
+      </button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;padding:12px;font-size:13px;border:1px solid var(--border2);margin-bottom:10px" onclick="toggleAutoSend()">
+      <span id="auto-send-lbl">⏰ الإرسال التلقائي: إيقاف</span>
+    </button>
+    <div id="auto-send-note" style="font-size:12px;color:var(--grey2);text-align:center;display:none;padding:6px 0">
+      ✅ سيتم تذكيرك بإرسال التقرير كل جمعة عند فتح التطبيق
+    </div>
+
+  </div><!-- /page-content -->
+</div><!-- /page-weekly-report -->
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ══════════════════════════════════
+     MODAL: QUICK ADD
+══════════════════════════════════ -->
+<div class="modal-ov" id="quick-modal">
+  <div class="modal-box">
+    <button class="modal-x" onclick="closeQuickAdd()">×</button>
+    <h2>➕ إضافة امتحان سريع</h2>
+    <div class="field">
+      <label class="f-lbl">المادة</label>
+      <select class="f-inp" id="q-subj"><!-- JS --></select>
+    </div>
+    <div class="field">
+      <label class="f-lbl">اسم الامتحان</label>
+      <input type="text" class="f-inp" id="q-name" placeholder="مثال: اختبار قصير"/>
+    </div>
+    <div class="g2-form">
+      <div class="field"><label class="f-lbl">الدرجة</label><input type="number" class="f-inp" id="q-score" placeholder="75" min="0" oninput="calcQPrev()"/></div>
+      <div class="field"><label class="f-lbl">الكلية</label><input type="number" class="f-inp" id="q-total" placeholder="100" min="1" oninput="calcQPrev()"/></div>
+    </div>
+    <div class="pct-prev" id="q-pct">
+      <div class="pct-prev-lbl">النسبة المحسوبة</div>
+      <div class="pct-prev-num" id="q-pct-num">--%</div>
+    </div>
+    <div class="f-err" id="q-err"></div>
+    <div style="display:flex;gap:9px">
+      <button class="btn btn-red" style="flex:2" onclick="submitQuick()">✓ إضافة</button>
+      <button class="btn btn-ghost" style="flex:1;padding:12px" onclick="closeQuickAdd()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+const SUBJS = [
+  {id:'arabic',      name:'اللغة العربية',        icon:'ع',  color:'#cc0000'},
+  {id:'english',     name:'اللغة الإنجليزية',     icon:'En', color:'#22c55e'},
+  {id:'chemistry',   name:'الكيمياء',             icon:'كي', color:'#f59e0b'},
+  {id:'physics',     name:'الفيزياء',             icon:'ف',  color:'#3b82f6'},
+  {id:'pure-math',   name:'الرياضيات البحتة',    icon:'∑',  color:'#a855f7'},
+  {id:'applied-math',name:'الرياضيات التطبيقية', icon:'∫',  color:'#06b6d4'},
+  {id:'french',      name:'اللغة الفرنسية',       icon:'Fr', color:'#f43f5e'},
+];
+
+/* ════════════════════════════════════════
+   API — auto-configured for each environment
+   • Local dev  → Express server on localhost:3000
+   • Vercel     → serverless functions at /api
+════════════════════════════════════════ */
+const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000'
+  : '/api';
+
+/* JWT token — kept in localStorage only for session persistence */
+let authToken = localStorage.getItem('st_token') || null;
+
+function apiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': authToken ? `Bearer ${authToken}` : '',
+  };
+}
+
+/* ── In-memory grade stores (populated from MongoDB on login) ── */
+const exams  = {};   /* { subjectId: [{ id, name, score, total }, ...] } */
+let compData = [];   /* [{ id, subj, name, score, total }, ...] */
+SUBJS.forEach(s => { exams[s.id] = []; });
+
+let curSubj  = null;
+let editId   = null;
+let prevPage = 'dashboard';
+let curPage  = 'dashboard';
+
+/* no-op — data lives in MongoDB now */
+function saveToStorage() {}
+
+/* ── Load ALL grades from MongoDB → rebuild exams + compData ── */
+async function loadGradesFromDB() {
+  if (!authToken) return;
+  try {
+    const res  = await fetch(`${API}/grades`, { headers: apiHeaders() });
+    if (!res.ok) return;
+    const list = await res.json();
+
+    /* Reset */
+    SUBJS.forEach(s => { exams[s.id] = []; });
+    compData = [];
+
+    list.forEach(g => {
+      /* Always store _id as a plain string so === comparisons work reliably */
+      const entry = {
+        id:    String(g._id),
+        name:  g.name,
+        score: g.score,
+        total: g.maxScore,
+      };
+      if (g.isComp) {
+        compData.push({ ...entry, subj: g.subject });
+      } else {
+        if (!exams[g.subject]) exams[g.subject] = [];
+        exams[g.subject].push(entry);
+      }
+    });
+  } catch {
+    /* silent — data will remain from last successful load */
+  }
+}
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+const pct    = (s,t) => t ? Math.round(s/t*100) : 0;
+const pad    = n     => String(n).padStart(2,'0');
+const byId   = id    => SUBJS.find(s=>s.id===id);
+const scoreColor = p => p>=80?'var(--green)':p>=60?'var(--amber)':'var(--red-l)';
+const badgeCls   = p => p>=80?'b-green':p>=60?'b-amber':'b-red';
+
+function subjAvg(id){
+  const list=exams[id]||[];
+  if(!list.length) return 0;
+  return Math.round(list.reduce((a,e)=>a+pct(e.score,e.total),0)/list.length);
+}
+
+function globalStats(){
+  const avgs=SUBJS.map(s=>({s,a:subjAvg(s.id)}));
+  const overall=Math.round(avgs.reduce((a,x)=>a+x.a,0)/avgs.length);
+  const best =avgs.reduce((a,b)=>a.a>=b.a?a:b);
+  const weak =avgs.reduce((a,b)=>a.a<=b.a?a:b);
+  const total=SUBJS.reduce((a,s)=>a+(exams[s.id]||[]).length,0);
+  return {overall,best,weak,total};
+}
+
+function showErr(el,msg){el.textContent=msg;el.style.display='block'}
+function hideErr(el){el.style.display='none'}
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+function showPage(pid, navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pid).classList.add('active');
+
+  if(navEl){
+    document.querySelectorAll('.nav-item,.nav-subj').forEach(n=>n.classList.remove('active'));
+    navEl.classList.add('active');
+  }
+
+  const titles={
+    dashboard:        'لوحة <span>التحكم</span>',
+    'all-subjects':   'المواد <span>الدراسية</span>',
+    subject:          'صفحة <span>المادة</span>',
+    comprehensive:    'الامتحانات <span>الشاملة</span>',
+    countdown:        'العداد <span>التنازلي</span>',
+    'weekly-report':  'التقرير <span>الأسبوعي</span>',
+    profile:          'الملف <span>الشخصي</span>',
+  };
+  document.getElementById('tb-title').innerHTML = titles[pid]||pid;
+
+  prevPage=curPage;
+  curPage=pid;
+
+  if(pid==='dashboard')      renderDash();
+  if(pid==='all-subjects')   renderAllSubjects();
+  if(pid==='comprehensive')  renderCompPage();
+  if(pid==='weekly-report')  refreshWeeklyReport();
+  if(pid==='profile')        renderProfile();
+  closeSidebar();
+}
+
+function openSubject(id, fromNavEl){
+  curSubj=id;
+  const s=byId(id);
+
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-subject').classList.add('active');
+  document.getElementById('tb-title').innerHTML=`<span style="color:var(--red)">${s.name}</span>`;
+
+  if(fromNavEl){
+    document.querySelectorAll('.nav-item,.nav-subj').forEach(n=>n.classList.remove('active'));
+    fromNavEl.classList.add('active');
+  } else {
+    /* highlight sidebar subject */
+    document.querySelectorAll('.nav-subj').forEach(n=>{
+      n.classList.toggle('active', n.dataset.id===id);
+    });
+  }
+
+  prevPage=curPage;
+  curPage='subject';
+  cancelEdit();
+  renderSubjectPage();
+  closeSidebar();
+}
+
+function backFromSubject(){
+  showPage(prevPage==='subject'?'all-subjects':prevPage, null);
+  /* re-highlight nav */
+  const map={dashboard:'dashboard','all-subjects':'all-subjects',comprehensive:'comprehensive',countdown:'countdown',profile:'profile'};
+  const pid=map[curPage]||'dashboard';
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+pid+"'")) n.classList.add('active');
+  });
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR HELPERS
+════════════════════════════════════════ */
+function renderSidebarSubjects(){
+  const el=document.getElementById('sb-subjects');
+  el.innerHTML=SUBJS.map(s=>`
+    <div class="nav-subj" data-id="${s.id}" onclick="openSubject('${s.id}',this)">
+      <div class="subj-dot" style="background:${s.color}"></div>
+      ${s.name}
+    </div>
+  `).join('');
+}
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open') }
+function closeSidebar(){
+  if(window.innerWidth<=640) document.getElementById('sidebar').classList.remove('open');
+}
+
+/* ════════════════════════════════════════
+   RENDER: DASHBOARD
+════════════════════════════════════════ */
+function renderDash(){
+  const {overall,best,weak,total}=globalStats();
+
+  /* ── Row 1: existing 4 cards ── */
+  document.getElementById('d-avg').textContent   = overall+'%';
+  document.getElementById('d-best').textContent  = best.s.name;
+  document.getElementById('d-best-pct').textContent='متوسط '+best.a+'%';
+  document.getElementById('d-weak').textContent  = weak.s.name;
+  document.getElementById('d-weak-pct').textContent='متوسط '+weak.a+'%';
+  document.getElementById('d-count').textContent = total;
+
+  /* ── Row 2: new analytics cards ── */
+
+  /* Collect every single exam across all subjects */
+  const allExams = SUBJS.flatMap(s =>
+    (exams[s.id]||[]).map(e => ({
+      ...e,
+      subjectName: s.name,
+      pct: Math.round(e.score / e.total * 100),
+    }))
+  );
+
+  /* Highest & lowest single exam */
+  if(allExams.length){
+    const hi = allExams.reduce((a,b)=>a.pct>=b.pct?a:b);
+    const lo = allExams.reduce((a,b)=>a.pct<=b.pct?a:b);
+    document.getElementById('d-hi').textContent     = hi.pct+'%';
+    document.getElementById('d-hi-sub').textContent = hi.subjectName+' — '+hi.name;
+    document.getElementById('d-lo').textContent     = lo.pct+'%';
+    document.getElementById('d-lo-sub').textContent = lo.subjectName+' — '+lo.name;
+  } else {
+    document.getElementById('d-hi').textContent     = '--%';
+    document.getElementById('d-hi-sub').textContent = '--';
+    document.getElementById('d-lo').textContent     = '--%';
+    document.getElementById('d-lo-sub').textContent = '--';
+  }
+
+  /* Active subjects (have at least 1 exam) */
+  const activeCount = SUBJS.filter(s=>(exams[s.id]||[]).length>0).length;
+  document.getElementById('d-active').textContent = activeCount;
+
+  /* Performance level based on overall average */
+  let level;
+  if(overall >= 85)      level = 'ممتاز 🔥';
+  else if(overall >= 70) level = 'جيد جدًا 👍';
+  else if(overall >= 50) level = 'مقبول 🙂';
+  else                   level = 'ضعيف ⚠️';
+  const levelEl = document.getElementById('d-level');
+  levelEl.textContent = level;
+  levelEl.style.color =
+    overall>=85 ? 'var(--green)' :
+    overall>=70 ? 'var(--blue)'  :
+    overall>=50 ? 'var(--amber)' : 'var(--red-l)';
+
+  /* subject cards */
+  document.getElementById('d-subj-grid').innerHTML=subjCards(true);
+
+  /* ── Subject Analysis strips ── */
+  const analysisEl = document.getElementById('d-subj-analysis');
+  if(analysisEl){
+    const hasAny = SUBJS.some(s=>(exams[s.id]||[]).length>0);
+    if(!hasAny){
+      analysisEl.innerHTML=`<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--grey2);font-size:13px">
+        📝 أضف امتحانات لرؤية التحليل التفصيلي
+      </div>`;
+    } else {
+      analysisEl.innerHTML = SUBJS.map(s=>{
+        const list = exams[s.id]||[];
+        if(!list.length) return '';
+        const avg  = subjAvg(s.id);
+        const pcts = list.map(e=>pct(e.score,e.total));
+        const last = pcts[pcts.length-1];
+        const prev = pcts.length>=2 ? pcts[pcts.length-2] : null;
+        const col  = avg>=80?'var(--green)':avg>=60?'var(--amber)':'var(--red-l)';
+
+        /* Trend arrow */
+        let trend='', trendCol='var(--grey2)';
+        if(prev!==null){
+          if(last>prev)     { trend=`▲ ${last-prev}%`; trendCol='var(--green)'; }
+          else if(last<prev){ trend=`▼ ${prev-last}%`; trendCol='var(--red-l)'; }
+          else              { trend='➖ ثابت';          trendCol='var(--grey2)'; }
+        }
+
+        /* Progress bar width */
+        const barW = Math.min(avg,100);
+
+        return `<div class="card" style="padding:14px 18px;cursor:pointer" onclick="openSubject('${s.id}',null)"
+          onmouseover="this.style.borderColor='${s.color}'" onmouseout="this.style.borderColor=''">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <div style="width:32px;height:32px;border-radius:8px;background:${s.color}18;border:1px solid ${s.color}33;
+                display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${s.color}">${s.icon}</div>
+              <div>
+                <div style="font-size:13px;font-weight:800">${s.name}</div>
+                <div style="font-size:11px;color:var(--grey2)">${list.length} امتحانات</div>
+              </div>
+            </div>
+            <div style="text-align:left">
+              <div style="font-size:22px;font-weight:900;color:${col}">${avg}%</div>
+              ${trend ? `<div style="font-size:11px;font-weight:700;color:${trendCol}">${trend}</div>` : ''}
+            </div>
+          </div>
+          <div style="height:4px;background:var(--black5);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:${col};border-radius:3px;transition:width .6s ease"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  /* ── Bar chart: subjects vs averages ── */
+  const chartCanvas = document.getElementById('d-chart');
+  const SHORT_LABELS = ['عربي','إنجليزي','كيمياء','فيزياء','ر.بحتة','ر.تطبيقية','فرنساوي'];
+  const liveAvgs    = SUBJS.map(s => subjAvg(s.id));
+  const liveColors  = SUBJS.map(s => s.color);
+
+  if (window._dashChart) {
+    window._dashChart.data.labels                              = SHORT_LABELS;
+    window._dashChart.data.datasets[0].data                   = liveAvgs;
+    window._dashChart.data.datasets[0].backgroundColor        = liveColors.map(c=>c+'aa');
+    window._dashChart.data.datasets[0].borderColor            = liveColors;
+    window._dashChart.update();
+  } else {
+    window._dashChart = new Chart(chartCanvas, {
+      type: 'bar',
+      data: {
+        labels: SHORT_LABELS,
+        datasets: [{
+          label: 'المتوسط %',
+          data: liveAvgs,
+          backgroundColor: liveColors.map(c=>c+'aa'),
+          borderColor:     liveColors,
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 500 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111', borderColor: '#cc0000', borderWidth: 1,
+            titleColor: '#f5f5f5', bodyColor: '#999',
+            titleFont: { family: 'Cairo', weight: '800' }, bodyFont: { family: 'Cairo' },
+            callbacks: {
+              title: ctx => SUBJS[ctx[0].dataIndex].name,
+              label: ctx => ' المتوسط: ' + ctx.parsed.y + '%',
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0, max: 100,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#666', font: { family: 'Cairo', size: 11 },
+              callback: v => v+'%' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#666', font: { family: 'Cairo', size: 10 }, maxRotation: 0 }
+          }
+        }
+      }
+    });
+  }
+
+  /* rings */
+  document.getElementById('d-rings').innerHTML=SUBJS.slice(0,4).map(s=>{
+    const avg=subjAvg(s.id);
+    const cnt=(exams[s.id]||[]).length;
+    const r=34, circ=2*Math.PI*r;
+    const off=circ-(avg/100)*circ;
+    return `<div class="ring-card" onclick="openSubject('${s.id}',null)">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="display:block;margin:0 auto">
+        <circle cx="40" cy="40" r="${r}" fill="none" stroke="var(--black5)" stroke-width="7"/>
+        <circle cx="40" cy="40" r="${r}" fill="none" stroke="${s.color}" stroke-width="7"
+          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+          stroke-linecap="round" transform="rotate(-90 40 40)"/>
+        <text x="40" y="45" text-anchor="middle" fill="var(--white)" font-size="13" font-weight="800" font-family="Cairo,sans-serif">${avg}%</text>
+      </svg>
+      <div class="ring-name">${s.name}</div>
+      <div class="ring-cnt">${cnt} امتحانات</div>
+    </div>`;
+  }).join('');
+
+  /* suggestions */
+  renderSuggestions();
+}
+
+/* ════════════════════════════════════════
+   SMART SUGGESTIONS ENGINE
+════════════════════════════════════════ */
+function renderSuggestions(){
+  const box = document.getElementById('suggestions-box');
+  if(!box) return;
+
+  const tips = [];
+  const totalExams = SUBJS.reduce((a,s) => a + (exams[s.id]||[]).length, 0);
+
+  /* ── No data yet ── */
+  if(totalExams === 0){
+    box.innerHTML = `<div class="card" style="padding:18px 22px;color:var(--grey);font-size:13px">
+      📝 أضف امتحاناتك أولاً لتظهر لك التوصيات الذكية.
+    </div>`;
+    return;
+  }
+
+  /* ── Per-subject 3-tier analysis ── */
+  SUBJS.forEach(s => {
+    const list = exams[s.id] || [];
+    if(!list.length) return;
+
+    const avg  = subjAvg(s.id);
+    const pcts = list.map(e => pct(e.score, e.total));
+    const last = pcts[pcts.length - 1];
+    const prev = pcts.length >= 2 ? pcts[pcts.length - 2] : null;
+
+    /* WEAK — avg < 50 */
+    if(avg < 50){
+      tips.push({
+        type:'danger', ico:'🚨',
+        title:`ركّز أكتر في ${s.name}`,
+        body:`متوسطك ${avg}% — ده تحت المقبول، لازم مراجعة عاجلة قبل الامتحان.`
+      });
+    }
+    /* AVERAGE — 50 ≤ avg ≤ 75 */
+    else if(avg <= 75){
+      tips.push({
+        type:'warning', ico:'⚠️',
+        title:`${s.name} مستواك متوسط`,
+        body:`متوسطك ${avg}% — في المنتصف، زيادة المراجعة هترفعك للمستوى الكويس.`
+      });
+    }
+    /* GOOD — avg > 75 */
+    else {
+      tips.push({
+        type:'success', ico:'✅',
+        title:`مستواك كويس في ${s.name}`,
+        body:`متوسطك ${avg}% — أداء ممتاز، حافظ على المستوى ده.`
+      });
+    }
+
+    /* Trend: dropping */
+    if(prev !== null && last < prev - 10){
+      tips.push({
+        type:'warning', ico:'📉',
+        title:`انخفاض في ${s.name}`,
+        body:`نزلت من ${prev}% لـ ${last}% — راجع سبب التراجع ده.`
+      });
+    }
+    /* Trend: rising */
+    if(prev !== null && last > prev + 10){
+      tips.push({
+        type:'success', ico:'📈',
+        title:`تحسن في ${s.name}!`,
+        body:`طلعت من ${prev}% لـ ${last}% — كمّل على نفس الأسلوب.`
+      });
+    }
+  });
+
+  /* ── Global tips ── */
+  const {overall, best, weak} = globalStats();
+
+  if(overall < 60){
+    tips.push({
+      type:'danger', ico:'📚',
+      title:'المتوسط العام محتاج تحسين',
+      body:`متوسطك الكلي ${overall}% — حط جدول مراجعة يومي وابدأ بالمواد الضعيفة.`
+    });
+  } else if(overall >= 80){
+    tips.push({
+      type:'success', ico:'⭐',
+      title:'مستواك العام ممتاز!',
+      body:`متوسطك الكلي ${overall}% — استمر في المذاكرة المنتظمة.`
+    });
+  }
+
+  if(weak.a < 70){
+    tips.push({
+      type:'info', ico:'🎯',
+      title:`ركّز على ${weak.s.name}`,
+      body:`دي أضعف موادك بمتوسط ${weak.a}% — خصص ليها وقت إضافي في جدولك.`
+    });
+  }
+
+  if(best.a >= 75){
+    tips.push({
+      type:'info', ico:'💪',
+      title:`قوتك في ${best.s.name}`,
+      body:`متوسطك ${best.a}% — استغل الوقت الزيادة في المواد التانية.`
+    });
+  }
+
+  /* ── Render (max 8 cards) ── */
+  const COLOR = {
+    danger:'var(--red-l)', warning:'var(--amber)',
+    success:'var(--green)', info:'var(--blue)'
+  };
+
+  box.innerHTML = `<div class="suggest-grid">${
+    tips.slice(0, 8).map(t => `
+      <div class="suggest-card ${t.type}">
+        <div class="sug-ico">${t.ico}</div>
+        <div>
+          <div class="sug-title" style="color:${COLOR[t.type]}">${t.title}</div>
+          <div class="sug-body">${t.body}</div>
+        </div>
+      </div>`
+    ).join('')
+  }</div>`;
+}
+
+
+function subjCards(clickable=false){
+  return SUBJS.map(s=>{
+    const avg=subjAvg(s.id);
+    const cnt=(exams[s.id]||[]).length;
+    const col=scoreColor(avg);
+    const click=clickable?`onclick="openSubject('${s.id}',null)"`:``
+    return `<div class="card" style="cursor:pointer;transition:all .22s;position:relative;overflow:hidden;padding:0" ${click}
+      onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.5)'"
+      onmouseout="this.style.borderColor='';this.style.transform='';this.style.boxShadow=''">
+      <div style="position:absolute;top:0;right:0;width:70px;height:70px;background:${s.color};opacity:.07;border-radius:0 12px 0 70px"></div>
+      <div style="padding:18px 16px">
+        <div style="width:42px;height:42px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:${s.color};margin-bottom:12px">${s.icon}</div>
+        <div style="font-size:13.5px;font-weight:800;margin-bottom:3px">${s.name}</div>
+        <div style="font-size:11px;color:var(--grey2);margin-bottom:12px">${cnt} امتحان</div>
+        <div style="font-size:22px;font-weight:900;color:${col};margin-bottom:8px">${avg}%</div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${avg}%;background:${col}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function barChartHTML(){
+  return SUBJS.map(s=>{
+    const avg=subjAvg(s.id);
+    return `<div class="bar-col">
+      <div class="bar" style="height:${Math.max(avg,3)}%;background:${s.color}" title="${s.name}: ${avg}%"></div>
+      <div class="bar-lbl">${s.icon}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   RENDER: ALL SUBJECTS
+════════════════════════════════════════ */
+function renderAllSubjects(){
+  document.getElementById('as-grid').innerHTML=subjCards(true);
+}
+
+/* ════════════════════════════════════════
+   RENDER: SUBJECT PAGE (detail)
+════════════════════════════════════════ */
+function renderSubjectPage(){
+  const s=byId(curSubj);
+  const list=exams[curSubj]||[];
+
+  document.getElementById('sd-ico').textContent=s.icon;
+  document.getElementById('sd-ico').style.color=s.color;
+  document.getElementById('sd-name').textContent=s.name;
+
+  if(list.length){
+    const pcts=list.map(e=>pct(e.score,e.total));
+    const avg=Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);
+    document.getElementById('sd-meta').innerHTML=`${list.length} امتحانات · متوسط <b>${avg}%</b>`;
+    document.getElementById('sd-hi').textContent=Math.max(...pcts)+'%';
+    document.getElementById('sd-lo').textContent=Math.min(...pcts)+'%';
+    document.getElementById('sd-avg').textContent=avg+'%';
+    document.getElementById('sd-cnt').textContent=list.length;
+  } else {
+    document.getElementById('sd-meta').innerHTML='0 امتحانات';
+    document.getElementById('sd-hi').textContent='--%';
+    document.getElementById('sd-lo').textContent='--%';
+    document.getElementById('sd-avg').textContent='--%';
+    document.getElementById('sd-cnt').textContent='0';
+  }
+
+  /* ── Subject detail line chart — reads live from exams (localStorage-backed) ── */
+  const sdCanvas = document.getElementById('sd-chart');
+  const sdEmpty  = document.getElementById('sd-chart-empty');
+
+  if (window._subjChart) window._subjChart.destroy();
+
+  if (!list.length) {
+    sdCanvas.style.display = 'none';
+    sdEmpty.style.display  = 'flex';
+  } else {
+    sdEmpty.style.display  = 'none';
+    sdCanvas.style.display = 'block';
+
+    /* Fresh data straight from the live list (already from exams / localStorage) */
+    const liveLabels = list.map(e => e.name);
+    const livePcts   = list.map(e => pct(e.score, e.total));
+
+    window._subjChart = new Chart(sdCanvas, {
+      type: 'line',
+      data: {
+        labels: liveLabels,
+        datasets: [{
+          label: 'النسبة %',
+          data: livePcts,
+          borderColor: s.color,
+          backgroundColor: s.color + '22',
+          pointBackgroundColor: s.color,
+          pointBorderColor: '#000',
+          pointRadius: 6, pointHoverRadius: 8,
+          borderWidth: 2.5, tension: 0.4, fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 500 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111', borderColor: s.color, borderWidth: 1,
+            titleColor: '#f5f5f5', bodyColor: '#999',
+            titleFont: { family: 'Cairo', weight: '800' }, bodyFont: { family: 'Cairo' },
+            callbacks: {
+              label: ctx => ' النسبة: ' + ctx.parsed.y + '%',
+            }
+          }
+        },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { family: 'Cairo', size: 11 } } },
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { family: 'Cairo', size: 10 }, maxRotation: 25 } }
+        }
+      }
+    });
+  }
+
+  /* table */
+  const tbody=document.getElementById('sd-tbody');
+  document.getElementById('tbl-cnt').textContent=list.length+' امتحانات';
+
+  if(!list.length){
+    tbody.innerHTML='<tr><td colspan="7"><div class="empty"><span class="empty-ico">📝</span>لا توجد امتحانات بعد، أضف أول امتحان!</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=list.map((e,i)=>{
+    const p=pct(e.score,e.total);
+    return `<tr>
+      <td style="color:var(--grey2);font-weight:700">${i+1}</td>
+      <td style="font-weight:700">${e.name}</td>
+      <td style="font-weight:700">${e.score}</td>
+      <td style="color:var(--grey)">${e.total}</td>
+      <td><span class="badge ${badgeCls(p)}">${p}%</span></td>
+      <td><button class="btn-edit" onclick="startEdit('${e.id}')">✏️ تعديل</button></td>
+      <td><button class="btn-del" onclick="delExam('${e.id}')">🗑 حذف</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   EXAM CRUD
+════════════════════════════════════════ */
+async function submitExam(){
+  const name  = document.getElementById('f-name').value.trim();
+  const score = document.getElementById('f-score').value.trim();
+  const total = document.getElementById('f-total').value.trim();
+  const errEl = document.getElementById('f-err');
+  const btn   = document.getElementById('f-submit');
+
+  /* ── Validation ── */
+  if(!name || !score || !total){
+    showErr(errEl,'من فضلك املأ كل الحقول'); return;
+  }
+  if(isNaN(Number(score)) || isNaN(Number(total))){
+    showErr(errEl,'الدرجة يجب أن تكون رقم'); return;
+  }
+  if(Number(score) < 0 || Number(total) <= 0){
+    showErr(errEl,'الدرجة يجب أن تكون رقم موجب'); return;
+  }
+  if(Number(score) > Number(total)){
+    showErr(errEl,'لا يمكن أن تكون الدرجة أكبر من الدرجة النهائية'); return;
+  }
+  hideErr(errEl);
+
+  const scoreNum    = Number(score);
+  const totalNum    = Number(total);
+  const origTxt     = btn.textContent;
+  const origBg      = btn.style.background;
+  btn.disabled      = true;
+  btn.textContent   = 'جاري التنفيذ...';
+
+  try {
+    if(editId!==null){
+      const res = await fetch(`${API}/grades/${String(editId)}`, {
+        method: 'PUT', headers: apiHeaders(),
+        body: JSON.stringify({ name, score: scoreNum, maxScore: totalNum }),
+      });
+      if(!res.ok){ const d=await res.json(); showErr(errEl, d.error||'خطأ'); return; }
+      toast('تم تعديل الدرجة ✓','ok');
+      cancelEdit();
+    } else {
+      const res = await fetch(`${API}/grades`, {
+        method: 'POST', headers: apiHeaders(),
+        body: JSON.stringify({ subject: curSubj, name, score: scoreNum, maxScore: totalNum, isComp: false }),
+      });
+      if(!res.ok){ const d=await res.json(); showErr(errEl, d.error||'خطأ'); return; }
+      toast('تمت إضافة الدرجة بنجاح ✓','ok');
+      clearForm();
+    }
+  } catch {
+    showErr(errEl,'الخادم غير متاح حالياً'); return;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = origTxt;
+    btn.style.background = origBg;
+  }
+
+  await loadGradesFromDB();
+  renderSubjectPage();
+  renderDash();
+}
+
+function startEdit(id){
+  const sid = String(id);
+  const e   = (exams[curSubj]||[]).find(x=>String(x.id)===sid);
+  if(!e){
+    toast('تعذر العثور على الدرجة — حاول تحديث الصفحة','err');
+    return;
+  }
+  editId = sid;
+  document.getElementById('f-name').value  = e.name;
+  document.getElementById('f-score').value = e.score;
+  document.getElementById('f-total').value = e.total;
+  document.getElementById('f-submit').textContent = '💾 حفظ التعديل';
+  document.getElementById('f-submit').style.background = '#1d4ed8';
+  document.getElementById('f-cancel').style.display    = 'block';
+  document.getElementById('form-mode-lbl').textContent = '✏️ تعديل الامتحان';
+  calcPrev();
+  toast('جاهز للتعديل — عدّل البيانات واضغط حفظ','info');
+  document.getElementById('f-name').focus();
+}
+
+function cancelEdit(){
+  editId=null;
+  clearForm();
+  document.getElementById('f-submit').textContent='✓ إضافة الامتحان';
+  document.getElementById('f-submit').style.background='';
+  document.getElementById('f-cancel').style.display='none';
+  document.getElementById('form-mode-lbl').textContent='➕ إضافة امتحان';
+  document.getElementById('pct-prev').style.display='none';
+  hideErr(document.getElementById('f-err'));
+}
+
+async function delExam(id){
+  const sid = String(id);
+  if(!confirm('هل تريد حذف هذا الامتحان؟')) return;
+
+  /* Disable all delete buttons while request is in flight */
+  const allDelBtns = document.querySelectorAll('#sd-tbody .btn-del');
+  allDelBtns.forEach(b=>{ b.disabled=true; b.textContent='جاري التنفيذ...'; });
+
+  try {
+    const res = await fetch(`${API}/grades/${sid}`, {
+      method: 'DELETE',
+      headers: apiHeaders(),
+    });
+    if(!res.ok){
+      const d = await res.json().catch(()=>({}));
+      toast(d.error || 'حدث خطأ أثناء الحذف','err');
+      allDelBtns.forEach(b=>{ b.disabled=false; b.textContent='🗑 حذف'; });
+      return;
+    }
+  } catch {
+    toast('الخادم غير متاح حالياً','err');
+    allDelBtns.forEach(b=>{ b.disabled=false; b.textContent='🗑 حذف'; });
+    return;
+  }
+
+  if(editId===sid) cancelEdit();
+  await loadGradesFromDB();
+  renderSubjectPage();
+  renderDash();
+  toast('تم حذف الدرجة ✓','ok');
+}
+
+function clearForm(){
+  ['f-name','f-score','f-total'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pct-prev').style.display='none';
+}
+
+/* ════════════════════════════════════════
+   COMPREHENSIVE
+════════════════════════════════════════ */
+let compEditId = null;
+
+function renderCompPage(){
+  const sel=document.getElementById('c-subj');
+  sel.innerHTML='<option value="">-- اختر المادة --</option>'+
+    SUBJS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  renderCompSections();
+  renderCompChart();
+}
+
+async function addComp(){
+  const subj =document.getElementById('c-subj').value;
+  const name =document.getElementById('c-name').value.trim();
+  const score=parseFloat(document.getElementById('c-score').value);
+  const total=parseFloat(document.getElementById('c-total').value);
+  const err  =document.getElementById('c-err');
+  const btn  =document.getElementById('c-submit');
+
+  /* ── Validation ── */
+  if(!subj){ showErr(err,'من فضلك املأ كل الحقول'); return }
+  if(!name || !document.getElementById('c-score').value.trim() || !document.getElementById('c-total').value.trim()){
+    showErr(err,'من فضلك املأ كل الحقول'); return;
+  }
+  if(isNaN(Number(score)) || isNaN(Number(total))){
+    showErr(err,'الدرجة يجب أن تكون رقم'); return;
+  }
+  if(Number(score) < 0 || Number(total) <= 0){
+    showErr(err,'الدرجة يجب أن تكون رقم موجب'); return;
+  }
+  if(Number(score) > Number(total)){
+    showErr(err,'لا يمكن أن تكون الدرجة أكبر من الدرجة النهائية'); return;
+  }
+  hideErr(err);
+
+  const origTxt = btn.textContent;
+  const origBg  = btn.style.background;
+  btn.disabled  = true;
+  btn.textContent = 'جاري التنفيذ...';
+
+  try {
+    if(compEditId!==null){
+      const res = await fetch(`${API}/grades/${compEditId}`, {
+        method: 'PUT', headers: apiHeaders(),
+        body: JSON.stringify({ name, score, maxScore: total }),
+      });
+      if(!res.ok){ const d=await res.json(); showErr(err, d.error||'خطأ'); return; }
+      toast('تم تعديل الدرجة ✓','ok');
+      cancelCompEdit();
+    } else {
+      const res = await fetch(`${API}/grades`, {
+        method: 'POST', headers: apiHeaders(),
+        body: JSON.stringify({ subject: subj, name, score, maxScore: total, isComp: true }),
+      });
+      if(!res.ok){ const d=await res.json(); showErr(err, d.error||'خطأ'); return; }
+      ['c-name','c-score','c-total'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('c-pct').style.display='none';
+      document.getElementById('c-subj').value='';
+      toast('تمت إضافة الدرجة بنجاح ✓','ok');
+    }
+  } catch {
+    showErr(err,'الخادم غير متاح حالياً'); return;
+  } finally {
+    btn.disabled     = false;
+    btn.textContent  = origTxt;
+    btn.style.background = origBg;
+  }
+
+  await loadGradesFromDB();
+  renderCompSections();
+  renderCompChart();
+}
+
+function startCompEdit(id){
+  const sid = String(id);
+  const e   = compData.find(x=>String(x.id)===sid);
+  if(!e){
+    toast('تعذر العثور على الدرجة — حاول تحديث الصفحة','err');
+    return;
+  }
+  compEditId = sid;
+  document.getElementById('c-subj').value  = e.subj;
+  document.getElementById('c-name').value  = e.name;
+  document.getElementById('c-score').value = e.score;
+  document.getElementById('c-total').value = e.total;
+  document.getElementById('c-submit').textContent    = '💾 حفظ التعديل';
+  document.getElementById('c-submit').style.background = '#1d4ed8';
+  document.getElementById('c-cancel').style.display   = 'block';
+  document.getElementById('c-form-lbl').textContent   = '✏️ تعديل الامتحان';
+  calcCompPrev();
+  toast('جاهز للتعديل — عدّل البيانات واضغط حفظ','info');
+}
+
+function cancelCompEdit(){
+  compEditId=null;
+  ['c-name','c-score','c-total'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-subj').value='';
+  document.getElementById('c-pct').style.display='none';
+  document.getElementById('c-submit').textContent='✓ إضافة';
+  document.getElementById('c-submit').style.background='';
+  document.getElementById('c-cancel').style.display='none';
+  document.getElementById('c-form-lbl').textContent='➕ إضافة امتحان شامل';
+  hideErr(document.getElementById('c-err'));
+}
+
+async function delComp(id){
+  const sid = String(id);
+  if(!confirm('حذف هذا الامتحان؟')) return;
+
+  /* Disable all delete buttons while request runs */
+  const allDelBtns = document.querySelectorAll('#comp-sections .btn-del');
+  allDelBtns.forEach(b=>{ b.disabled=true; b.textContent='جاري التنفيذ...'; });
+
+  try {
+    const res = await fetch(`${API}/grades/${sid}`, {
+      method: 'DELETE',
+      headers: apiHeaders(),
+    });
+    if(!res.ok){
+      const d = await res.json().catch(()=>({}));
+      toast(d.error || 'حدث خطأ أثناء الحذف','err');
+      allDelBtns.forEach(b=>{ b.disabled=false; b.textContent='🗑 حذف'; });
+      return;
+    }
+  } catch {
+    toast('الخادم غير متاح حالياً','err');
+    allDelBtns.forEach(b=>{ b.disabled=false; b.textContent='🗑 حذف'; });
+    return;
+  }
+  if(compEditId===sid) cancelCompEdit();
+  await loadGradesFromDB();
+  renderCompSections();
+  renderCompChart();
+  toast('تم حذف الدرجة ✓','ok');
+}
+
+function renderCompSections(){
+  const container=document.getElementById('comp-sections');
+  container.innerHTML='';
+  SUBJS.forEach(s=>{
+    const list=compData.filter(e=>e.subj===s.id);
+    if(!list.length) return;
+    const div=document.createElement('div');
+    div.style.marginBottom='18px';
+    div.innerHTML=`
+      <div class="card" style="overflow:hidden">
+        <div class="card-hd" style="border-right:3px solid ${s.color}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:28px;height:28px;border-radius:7px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${s.color}">${s.icon}</div>
+            <div class="card-ttl">${s.name}</div>
+            <span style="font-size:11px;color:var(--grey2);margin-right:auto">${list.length} امتحانات</span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>اسم الامتحان</th><th>الدرجة</th><th>الكلية</th><th>النسبة</th><th>تعديل</th><th>حذف</th></tr>
+            </thead>
+            <tbody>
+              ${list.map((e,i)=>{
+                const p=pct(e.score,e.total);
+                return `<tr>
+                  <td style="color:var(--grey2);font-weight:700">${i+1}</td>
+                  <td style="font-weight:700">${e.name}</td>
+                  <td style="font-weight:700">${e.score}</td>
+                  <td style="color:var(--grey)">${e.total}</td>
+                  <td><span class="badge ${badgeCls(p)}">${p}%</span></td>
+                  <td><button class="btn-edit" onclick="startCompEdit('${e.id}')">✏️ تعديل</button></td>
+                  <td><button class="btn-del" onclick="delComp('${e.id}')">🗑 حذف</button></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    container.appendChild(div);
+  });
+
+  if(!compData.length){
+    container.innerHTML=`<div class="card"><div class="empty" style="padding:40px"><span class="empty-ico">📝</span>لا توجد امتحانات شاملة بعد — أضف أول امتحان!</div></div>`;
+  }
+}
+
+function renderCompChart(){
+  const canvas = document.getElementById('comp-chart');
+  const empty  = document.getElementById('comp-chart-empty');
+
+  /* Short Arabic labels matching SUBJS order */
+  const SHORT = ['عربي','إنجليزي','كيمياء','فيزياء','رياضة بحتة','رياضة تطبيقية','فرنساوي'];
+
+  if (!compData.length) {
+    if (window._compChart) { window._compChart.destroy(); window._compChart = null; }
+    canvas.style.display = 'none';
+    empty.style.display  = 'flex';
+    return;
+  }
+
+  /* Build live averages per subject from compData (localStorage-backed) */
+  const labels = [], data = [], colors = [], fullNames = [];
+  SUBJS.forEach((s, i) => {
+    const list = compData.filter(e => e.subj === s.id);
+    if (!list.length) return;
+    const avg = Math.round(list.reduce((a, e) => a + pct(e.score, e.total), 0) / list.length);
+    labels.push(SHORT[i]);
+    fullNames.push(s.name);
+    data.push(avg);
+    colors.push(s.color);
+  });
+
+  empty.style.display  = 'none';
+  canvas.style.display = 'block';
+
+  if (window._compChart) {
+    /* Update in-place — no destroy/recreate flicker */
+    window._compChart.data.labels                          = labels;
+    window._compChart.data.datasets[0].data               = data;
+    window._compChart.data.datasets[0].pointBackgroundColor = colors;
+    window._compChart.options.plugins.tooltip.callbacks.title =
+      ctx => fullNames[ctx[0].dataIndex];
+    window._compChart.update();
+  } else {
+    window._compChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'متوسط النسبة %',
+          data,
+          borderColor: '#cc0000',
+          backgroundColor: 'rgba(204,0,0,0.12)',
+          pointBackgroundColor: colors,
+          pointBorderColor: '#000',
+          pointRadius: 7, pointHoverRadius: 9,
+          borderWidth: 2.5, tension: 0.4, fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 500 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111', borderColor: '#cc0000', borderWidth: 1,
+            titleColor: '#f5f5f5', bodyColor: '#999',
+            titleFont: { family: 'Cairo', weight: '800' }, bodyFont: { family: 'Cairo' },
+            callbacks: {
+              title: ctx => fullNames[ctx[0].dataIndex],
+              label: ctx => ' المتوسط: ' + ctx.parsed.y + '%',
+            }
+          }
+        },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { family: 'Cairo', size: 11 } } },
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { family: 'Cairo', size: 10 }, maxRotation: 25 } }
+        }
+      }
+    });
+  }
+}
+
+/* ════════════════════════════════════════
+   PROFILE
+════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   PROFILE — localStorage persistence
+════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   PROFILE — MongoDB backed (per-user)
+════════════════════════════════════════ */
+
+/* In-memory profile store — reset on logout */
+let currentProfile = {};
+
+/* ── Get the 4 inputs + 3 selects in profile card ── */
+function _profInputs(){
+  const bd      = document.querySelector('#page-profile .card-bd');
+  const inputs  = bd.querySelectorAll('input.f-inp');
+  /* inputs[0]=name, inputs[1]=email, inputs[2]=phone, inputs[3]=birth-year */
+  const selects = bd.querySelectorAll('select.f-inp');
+  /* selects[0]=grade, selects[1]=semester, selects[2]=year */
+  return { inputs, selects };
+}
+
+/* ── Apply name everywhere in the UI ── */
+function _applyName(fullName){
+  if(!fullName) return;
+  const first = fullName.split(' ')[0];
+
+  document.querySelector('.user-av').textContent   = fullName.charAt(0);
+  document.querySelector('.user-name').textContent = fullName;
+
+  const dashBanner = document.querySelector('#page-dashboard .banner-title span');
+  if(dashBanner) dashBanner.textContent = first;
+
+  let profAv = document.getElementById('prof-av');
+  if(!profAv){
+    profAv = document.querySelector('#page-profile .banner div[style*="border-radius:50%"]');
+    if(profAv) profAv.id = 'prof-av';
+  }
+  if(profAv) profAv.textContent = fullName.charAt(0);
+
+  const profBanner = document.querySelector('#page-profile .banner-title');
+  if(profBanner){
+    const parts = fullName.split(' ');
+    const rest  = parts.slice(1).join(' ');
+    profBanner.innerHTML = parts[0] + (rest ? ` <span>${rest}</span>` : '');
+  }
+}
+
+/* ── Load profile from MongoDB and fill form ── */
+async function loadProfile(){
+  if(!authToken) return;
+  try {
+    const res  = await fetch(`${API}/me`, { headers: apiHeaders() });
+    if(!res.ok) return;
+    const data = await res.json();
+
+    currentProfile = data;
+
+    const {inputs, selects} = _profInputs();
+    inputs[0].value  = data.name      || '';
+    inputs[1].value  = data.email     || '';
+    inputs[2].value  = data.phone     || '';
+    inputs[3].value  = data.birthYear || '';
+    selects[0].value = data.grade     || 'الصف الثاني الثانوي';
+    selects[1].value = data.semester  || 'الفصل الدراسي الأول';
+    selects[2].value = data.studyYear || '2024–2025';
+
+    _applyName(data.name);
+    updateDashPill();
+  } catch {
+    /* silent — profile will remain empty if server unreachable on load */
+  }
+}
+
+/* ── Save profile to MongoDB via PUT /me ── */
+async function saveProfile(){
+  if(!authToken) return;
+  const {inputs, selects} = _profInputs();
+
+  const name      = inputs[0].value.trim();
+  const phone     = inputs[2].value.trim();
+  const birthYear = inputs[3].value.trim();
+
+  /* ── Profile validation ── */
+  if(!name){
+    toast('من فضلك أكمل بياناتك — الاسم مطلوب','err'); return;
+  }
+
+  const body = {
+    name,
+    phone,
+    grade:      selects[0].value,
+    semester:   selects[1].value,
+    studyYear:  selects[2].value,
+    birthYear,
+  };
+  try {
+    const res  = await fetch(`${API}/me`, {
+      method: 'PUT', headers: apiHeaders(),
+      body: JSON.stringify(body),
+    });
+    if(!res.ok){
+      const d = await res.json();
+      toast(d.error || 'خطأ في الحفظ', 'err');
+      return;
+    }
+    const data = await res.json();
+    currentProfile = data;
+    _applyName(data.name);
+    updateDashPill();
+    toast('تم حفظ البيانات ✓','ok');
+  } catch {
+    toast('الخادم غير متاح حالياً','err');
+  }
+}
+
+/* ── Reset profile inputs on logout ── */
+function resetProfile(){
+  currentProfile = {};
+  try {
+    const {inputs, selects} = _profInputs();
+    inputs[0].value  = '';
+    inputs[1].value  = '';
+    inputs[2].value  = '';
+    inputs[3].value  = '';
+    selects[0].value = 'الصف الثاني الثانوي';
+    selects[1].value = 'الفصل الدراسي الأول';
+    selects[2].value = '2024–2025';
+  } catch {}
+}
+
+function renderProfile(){
+  const {overall,best,weak,total}=globalStats();
+  document.getElementById('pr-avg').textContent=overall+'%';
+  document.getElementById('pr-tot').textContent=total;
+  document.getElementById('pr-best').textContent=best.s.name;
+  document.getElementById('pr-weak').textContent=weak.s.name;
+
+  /* Re-fetch profile from server every time the page opens */
+  loadProfile();
+}
+
+/* ════════════════════════════════════════
+   WEEKLY REPORT
+   Week = Saturday → Friday
+════════════════════════════════════════ */
+
+/* ── Get Saturday of the week containing `date` ── */
+function getWeekStart(date) {
+  const d   = new Date(date);
+  const day = d.getDay();           /* 0=Sun … 6=Sat */
+  /* Distance back to Saturday: Sat=0 Su=1 Mo=2 Tu=3 We=4 Th=5 Fr=6 */
+  const diff = (day === 6) ? 0 : day + 1;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getWeekEnd(weekStart) {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + 6);      /* Friday */
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('ar-EG', { day:'numeric', month:'long' });
+}
+
+/* ── Collect all flat exams from in-memory stores ── */
+function getAllFlatExams() {
+  const all = [];
+  SUBJS.forEach(s => {
+    (exams[s.id] || []).forEach(e => {
+      all.push({ ...e, subject: s.name, isComp: false });
+    });
+  });
+  compData.forEach(e => {
+    const s = byId(e.subj);
+    all.push({ ...e, subject: s ? s.name : e.subj, isComp: true });
+  });
+  return all;
+}
+
+/* ── Filter exams within a date range ── */
+function filterByWeek(all, from, to) {
+  return all.filter(e => {
+    /* exams may not have a date — use createdAt fallback or skip */
+    if (!e.date && !e.createdAt) return false;
+    const t = new Date(e.date || e.createdAt).getTime();
+    return t >= from.getTime() && t <= to.getTime();
+  });
+}
+
+/* ── Calc average percentage from a list ── */
+function weekAvg(list) {
+  if (!list.length) return null;
+  return Math.round(list.reduce((a, e) => a + pct(e.score, e.total ?? e.maxScore), 0) / list.length);
+}
+
+/* ── Refresh weekly report UI ── */
+async function refreshWeeklyReport() {
+  /* Try to get fresh data from MongoDB */
+  try {
+    const res = await fetch(`${API}/grades`, { headers: apiHeaders() });
+    if (res.ok) {
+      const list = await res.json();
+      /* Rebuild exams with date info from DB */
+      SUBJS.forEach(s => { exams[s.id] = []; });
+      compData = [];
+      list.forEach(g => {
+        const entry = { id: g._id, name: g.name, score: g.score, total: g.maxScore, date: g.date, createdAt: g.createdAt };
+        if (g.isComp) compData.push({ ...entry, subj: g.subject });
+        else { if (!exams[g.subject]) exams[g.subject] = []; exams[g.subject].push(entry); }
+      });
+    }
+  } catch {}
+
+  const all     = getAllFlatExams();
+  const today   = new Date();
+
+  const currStart = getWeekStart(today);
+  const currEnd   = getWeekEnd(currStart);
+
+  const prevStart = new Date(currStart);
+  prevStart.setDate(prevStart.getDate() - 7);
+  const prevEnd   = getWeekEnd(prevStart);
+
+  const currList = filterByWeek(all, currStart, currEnd);
+  const prevList = filterByWeek(all, prevStart, prevEnd);
+
+  const currAvg  = weekAvg(currList);
+  const prevAvg  = weekAvg(prevList);
+
+  /* ── Status ── */
+  let statusText, statusColor;
+  if (currAvg === null) {
+    statusText  = '➖ لا يوجد';  statusColor = 'var(--grey)';
+  } else if (prevAvg === null || currAvg === prevAvg) {
+    statusText  = '➖ ثابت';     statusColor = 'var(--amber)';
+  } else if (currAvg > prevAvg) {
+    statusText  = '📈 تحسن';    statusColor = 'var(--green)';
+  } else {
+    statusText  = '📉 تراجع';   statusColor = 'var(--red-l)';
+  }
+
+  /* ── Update UI ── */
+  document.getElementById('wr-curr-range').textContent = `${fmtDate(currStart)} — ${fmtDate(currEnd)}`;
+  document.getElementById('wr-prev-range').textContent = `${fmtDate(prevStart)} — ${fmtDate(prevEnd)}`;
+  document.getElementById('wr-curr-avg').textContent   = currAvg !== null ? `${currAvg}%` : 'لا يوجد';
+  document.getElementById('wr-prev-avg').textContent   = prevAvg !== null ? `${prevAvg}%` : 'لا يوجد';
+  document.getElementById('wr-count').textContent      = currList.length;
+
+  const statusEl = document.getElementById('wr-status');
+  statusEl.textContent = statusText;
+  statusEl.style.color = statusColor;
+
+  /* ── Table ── */
+  const tbody = document.getElementById('wr-tbody');
+  if (!currList.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><span class="empty-ico">📝</span>لا توجد امتحانات هذا الأسبوع</div></td></tr>';
+  } else {
+    tbody.innerHTML = currList.map(e => {
+      const p    = pct(e.score, e.total ?? e.maxScore);
+      const col  = p>=80?'var(--green)':p>=60?'var(--amber)':'var(--red-l)';
+      const cls  = p>=80?'b-green':p>=60?'b-amber':'b-red';
+      const dStr = e.date ? new Date(e.date).toLocaleDateString('ar-EG') : '—';
+      return `<tr>
+        <td style="font-weight:700">${e.subject||'—'}</td>
+        <td>${e.name}</td>
+        <td style="font-weight:700">${e.score}</td>
+        <td style="color:var(--grey)">${e.total??e.maxScore}</td>
+        <td><span class="badge ${cls}">${p}%</span></td>
+        <td style="color:var(--grey2)">${dStr}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── Build WhatsApp message ── */
+  const msg = buildWAMessage(currAvg, prevAvg, currList, prevList, statusText, currStart, currEnd, prevStart, prevEnd);
+  document.getElementById('wr-preview').textContent = msg;
+
+  /* ── Friday auto-send check ── */
+  checkFridayReminder();
+}
+
+/* ── Build formatted Arabic WhatsApp message ── */
+function buildWAMessage(currAvg, prevAvg, currList, prevList, status, cS, cE, pS, pE) {
+  const lines = [];
+
+  lines.push('📊 التقرير الأسبوعي — Student Tracker');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+
+  /* ── THIS WEEK ── */
+  lines.push(`📅 هذا الأسبوع (${fmtDate(cS)} — ${fmtDate(cE)})`);
+  lines.push(`📈 المتوسط: ${currAvg !== null ? currAvg + '%' : 'لا يوجد امتحانات'}`);
+  lines.push(`📝 عدد الامتحانات: ${currList.length}`);
+
+  if (currList.length > 0) {
+    lines.push('');
+    lines.push('📋 الامتحانات:');
+    currList.forEach(e => {
+      const p   = pct(e.score, e.total ?? e.maxScore);
+      const ico = p >= 80 ? '🟢' : p >= 60 ? '🟡' : '🔴';
+      lines.push(`${ico} ${e.subject || ''}${e.subject ? ' — ' : ''}${e.name}: ${e.score}/${e.total ?? e.maxScore} (${p}%)`);
+    });
+  }
+
+  lines.push('');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+
+  /* ── PREVIOUS WEEK ── */
+  lines.push(`📅 الأسبوع الماضي (${fmtDate(pS)} — ${fmtDate(pE)})`);
+  lines.push(`📈 المتوسط: ${prevAvg !== null ? prevAvg + '%' : 'لا يوجد امتحانات'}`);
+  lines.push(`📝 عدد الامتحانات: ${prevList.length}`);
+
+  if (prevList.length > 0) {
+    lines.push('');
+    lines.push('📋 الامتحانات:');
+    prevList.forEach(e => {
+      const p   = pct(e.score, e.total ?? e.maxScore);
+      const ico = p >= 80 ? '🟢' : p >= 60 ? '🟡' : '🔴';
+      lines.push(`${ico} ${e.subject || ''}${e.subject ? ' — ' : ''}${e.name}: ${e.score}/${e.total ?? e.maxScore} (${p}%)`);
+    });
+  }
+
+  lines.push('');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+
+  /* ── OVERALL STATUS ── */
+  lines.push(`⚡ الحالة العامة: ${status}`);
+
+  /* ── PER-SUBJECT COMPARISON (improved / declined) ── */
+  const subjTrends = [];
+  SUBJS.forEach(s => {
+    const cExams = currList.filter(e => (e.subject === s.name || e.subj === s.id));
+    const pExams = prevList.filter(e => (e.subject === s.name || e.subj === s.id));
+    if (!cExams.length || !pExams.length) return;
+
+    const cA = Math.round(cExams.reduce((a,e)=>a+pct(e.score,e.total??e.maxScore),0)/cExams.length);
+    const pA = Math.round(pExams.reduce((a,e)=>a+pct(e.score,e.total??e.maxScore),0)/pExams.length);
+    const diff = cA - pA;
+
+    if (diff >= 10)       subjTrends.push(`📈 تقدم ملحوظ في ${s.name}: ${pA}% ← ${cA}% (+${diff}%)`);
+    else if (diff <= -10) subjTrends.push(`📉 تراجع في ${s.name}: ${pA}% ← ${cA}% (${diff}%)`);
+  });
+
+  if (subjTrends.length > 0) {
+    lines.push('');
+    lines.push('🔍 ملاحظات المواد:');
+    subjTrends.forEach(t => lines.push(t));
+  }
+
+  lines.push('');
+  lines.push('— تم الإرسال من Student Tracker 📱');
+
+  return lines.join('\n');
+}
+
+/* ── Open WhatsApp ── */
+function sendWhatsApp() {
+  const msg = document.getElementById('wr-preview').textContent;
+  if (!msg || msg === 'اضغط "تحديث" لتوليد الرسالة') {
+    refreshWeeklyReport().then(() => {
+      const updated = document.getElementById('wr-preview').textContent;
+      window.open(`https://wa.me/?text=${encodeURIComponent(updated)}`, '_blank');
+    });
+    return;
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+/* ── Auto-send toggle (localStorage preference only) ── */
+function toggleAutoSend() {
+  const key = 'wr_auto_send';
+  const now = localStorage.getItem(key) === '1';
+  localStorage.setItem(key, now ? '0' : '1');
+  updateAutoSendUI();
+}
+
+function updateAutoSendUI() {
+  const on  = localStorage.getItem('wr_auto_send') === '1';
+  const lbl = document.getElementById('auto-send-lbl');
+  const note = document.getElementById('auto-send-note');
+  if (lbl)  lbl.textContent   = on ? '⏰ الإرسال التلقائي: تشغيل ✅' : '⏰ الإرسال التلقائي: إيقاف';
+  if (note) note.style.display = on ? 'block' : 'none';
+}
+
+/* ── Check Friday reminder on app open ── */
+function checkFridayReminder() {
+  if (localStorage.getItem('wr_auto_send') !== '1') return;
+  const today = new Date();
+  if (today.getDay() !== 5) return;          /* 5 = Friday */
+  const lastKey  = 'wr_last_reminded';
+  const lastDate = localStorage.getItem(lastKey);
+  const todayStr = today.toDateString();
+  if (lastDate === todayStr) return;         /* already reminded today */
+  localStorage.setItem(lastKey, todayStr);
+  setTimeout(() => {
+    if (confirm('📊 اليوم جمعة! هل تريد إرسال التقرير الأسبوعي على واتساب؟')) {
+      showPage('weekly-report', null);
+      setTimeout(sendWhatsApp, 800);
+    }
+  }, 1500);
+}
+
+/* Init auto-send UI state */
+updateAutoSendUI();
+
+
+function openQuickAdd(){
+  const sel=document.getElementById('q-subj');
+  sel.innerHTML=SUBJS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  if(curSubj) sel.value=curSubj;
+  document.getElementById('quick-modal').classList.add('open');
+}
+function closeQuickAdd(){
+  document.getElementById('quick-modal').classList.remove('open');
+  ['q-name','q-score','q-total'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('q-pct').style.display='none';
+  hideErr(document.getElementById('q-err'));
+}
+async function submitQuick(){
+  const subj=document.getElementById('q-subj').value;
+  const name=document.getElementById('q-name').value.trim();
+  const score=parseFloat(document.getElementById('q-score').value);
+  const total=parseFloat(document.getElementById('q-total').value);
+  const err=document.getElementById('q-err');
+  /* ── Validation ── */
+  if(!name || !document.getElementById('q-score').value.trim() || !document.getElementById('q-total').value.trim()){
+    showErr(err,'من فضلك املأ كل الحقول'); return;
+  }
+  if(isNaN(Number(score)) || isNaN(Number(total))){
+    showErr(err,'الدرجة يجب أن تكون رقم'); return;
+  }
+  if(Number(score) < 0 || Number(total) <= 0){
+    showErr(err,'الدرجة يجب أن تكون رقم موجب'); return;
+  }
+  if(Number(score) > Number(total)){
+    showErr(err,'لا يمكن أن تكون الدرجة أكبر من الدرجة النهائية'); return;
+  }
+  hideErr(err);
+  try {
+    const res = await fetch(`${API}/grades`, {
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify({ subject: subj, name, score, maxScore: total, isComp: false }),
+    });
+    if(!res.ok){ const d=await res.json(); showErr(err, d.error||'خطأ'); return; }
+  } catch { showErr(err,'الخادم غير متاح حالياً'); return; }
+  await loadGradesFromDB();
+  if(curSubj===subj) renderSubjectPage();
+  renderDash();
+  closeQuickAdd();
+  toast('تمت إضافة الدرجة بنجاح ✓','ok');
+}
+
+/* ════════════════════════════════════════
+   PERCENTAGE PREVIEWS
+════════════════════════════════════════ */
+function calcPrev(){
+  const s=parseFloat(document.getElementById('f-score').value);
+  const t=parseFloat(document.getElementById('f-total').value);
+  const el=document.getElementById('pct-prev');
+  const num=document.getElementById('pct-prev-num');
+  if(s>=0&&t>0){const p=pct(s,t);num.textContent=p+'%';num.style.color=scoreColor(p);el.style.display='block';}
+  else el.style.display='none';
+}
+function calcCompPrev(){
+  const s=parseFloat(document.getElementById('c-score').value);
+  const t=parseFloat(document.getElementById('c-total').value);
+  const el=document.getElementById('c-pct');
+  const num=document.getElementById('c-pct-num');
+  if(s>=0&&t>0){const p=pct(s,t);num.textContent=p+'%';num.style.color=scoreColor(p);el.style.display='block';}
+  else el.style.display='none';
+}
+function calcQPrev(){
+  const s=parseFloat(document.getElementById('q-score').value);
+  const t=parseFloat(document.getElementById('q-total').value);
+  const el=document.getElementById('q-pct');
+  const num=document.getElementById('q-pct-num');
+  if(s>=0&&t>0){const p=pct(s,t);num.textContent=p+'%';num.style.color=scoreColor(p);el.style.display='block';}
+  else el.style.display='none';
+}
+
+/* ════════════════════════════════════════
+   TIMERS
+════════════════════════════════════════ */
+let miniEl=0,miniRun=false,miniInt=null;
+let bigEl=0, bigRun=false, bigInt=null;
+
+function toggleMini(){
+  miniRun=!miniRun;
+  const btn=document.getElementById('mini-btn');
+  const st=document.getElementById('mst');
+  if(miniRun){miniInt=setInterval(tickMini,1000);btn.textContent='⏸ إيقاف';st.textContent='▶';}
+  else{clearInterval(miniInt);btn.textContent='▶ استئناف';st.textContent='⏸';}
+}
+function resetMini(){
+  clearInterval(miniInt);miniRun=false;miniEl=0;
+  ['mh','mm','ms'].forEach(id=>document.getElementById(id).textContent='00');
+  document.getElementById('mini-btn').textContent='▶ ابدأ';
+  document.getElementById('mst').textContent='⏸';
+}
+function tickMini(){
+  miniEl++;
+  document.getElementById('mh').textContent=pad(Math.floor(miniEl/3600));
+  document.getElementById('mm').textContent=pad(Math.floor(miniEl%3600/60));
+  document.getElementById('ms').textContent=pad(miniEl%60);
+}
+
+function toggleBig(){
+  bigRun=!bigRun;
+  const btn=document.getElementById('big-btn');
+  const st=document.getElementById('big-status');
+  if(bigRun){bigInt=setInterval(tickBig,1000);btn.textContent='⏸ إيقاف';st.textContent='العداد يعمل...';st.style.color='var(--green)';}
+  else{clearInterval(bigInt);btn.textContent='▶ استئناف';st.textContent='متوقف مؤقتاً';st.style.color='var(--amber)';}
+}
+function resetBig(){
+  clearInterval(bigInt);bigRun=false;bigEl=0;
+  document.getElementById('big-timer').textContent='00:00:00';
+  document.getElementById('big-btn').textContent='▶ ابدأ';
+  document.getElementById('big-status').textContent='العداد متوقف';
+  document.getElementById('big-status').style.color='var(--grey2)';
+}
+function tickBig(){
+  bigEl++;
+  const h=Math.floor(bigEl/3600),m=Math.floor(bigEl%3600/60),s=bigEl%60;
+  document.getElementById('big-timer').textContent=pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+function switchMode(m,btn){
+  document.getElementById('mini-manual').style.display=m==='m'?'block':'none';
+  document.getElementById('mini-date').style.display  =m==='d'?'block':'none';
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function calcMiniDays(){
+  const s=document.getElementById('md-s').value;
+  const e=document.getElementById('md-e').value;
+  if(!s||!e){toast('اختر التاريخين','err');return}
+  const d=Math.max(0,Math.ceil((new Date(e)-new Date(s))/86400000));
+  document.getElementById('mini-days').textContent=d;
+  document.getElementById('mini-res').style.display='block';
+}
+
+function calcFull(){
+  const s=document.getElementById('pd-s').value;
+  const e=document.getElementById('pd-e').value;
+  const lbl=document.getElementById('pd-label').value;
+  if(!s||!e){toast('اختر التاريخين','err');return}
+  const d=Math.max(0,Math.ceil((new Date(e)-new Date(s))/86400000));
+  document.getElementById('pd-days').textContent=d;
+  document.getElementById('pd-wk').textContent=Math.round(d/7);
+  document.getElementById('pd-hr').textContent=d*24;
+  document.getElementById('pd-mo').textContent=Math.round(d/30);
+  document.getElementById('pd-title').textContent=lbl?`الوقت المتبقي لـ "${lbl}"`:'الوقت المتبقي';
+  document.getElementById('pd-res').style.display='block';
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function toast(msg,type='ok'){
+  const t=document.createElement('div');
+  t.className='toast toast-'+type;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.style.opacity='0',2600);
+  setTimeout(()=>t.remove(),3000);
+}
+
+/* ════════════════════════════════════════
+   MODAL OVERLAY CLOSE
+════════════════════════════════════════ */
+document.getElementById('quick-modal').addEventListener('click',function(e){
+  if(e.target===this) closeQuickAdd();
+});
+
+/* ════════════════════════════════════════
+   UPDATE DASHBOARD PILL FROM PROFILE
+════════════════════════════════════════ */
+function updateDashPill(){
+  const sem=document.getElementById('prof-semester').value;
+  const yr =document.getElementById('prof-year').value;
+  const pill=document.getElementById('dash-pill');
+  if(pill) pill.textContent=sem+' '+yr;
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+renderSidebarSubjects();
+renderDash();
+
+/* Hook save button to saveProfile() */
+document.querySelector('.btn.btn-save').addEventListener('click', function(e){
+  e.preventDefault();
+  saveProfile();
+});
+/* Note: profile is now loaded from MongoDB after login — no localStorage call needed here */
+</script>
+</body>
+
+</div><!-- /mainApp -->
+
+
+<script>
+/* ════════════════════════════════════════
+   AUTH — Student Tracker
+════════════════════════════════════════ */
+/* API already declared in main script above */
+
+/* ── Show / Hide helpers ── */
+function showApp(name) {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('mainApp').style.display   = 'block';
+
+  /* Apply name immediately from login response, then overwrite with full profile */
+  if (typeof _applyName  === 'function') _applyName(name);
+  if (typeof loadProfile === 'function') loadProfile();   /* GET /me → per-user profile */
+  if (typeof renderDash  === 'function') renderDash();
+}
+function showLogin() {
+  document.getElementById('mainApp').style.display   = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+/* ── Tab switch ── */
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('panelLogin').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('panelRegister').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tabLogin').classList.toggle('active', isLogin);
+  document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+  clearMsg();
+}
+
+/* ── Message helpers ── */
+function showMsg(text, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent  = text;
+  el.className    = `auth-msg ${type}`;
+  el.style.display = 'block';
+}
+function clearMsg() {
+  const el = document.getElementById('authMsg');
+  el.style.display = 'none';
+  el.textContent   = '';
+}
+
+/* ── Logout ── */
+function logout() {
+  /* Clear token */
+  localStorage.removeItem('st_token');
+  authToken = null;
+
+  /* Reset all in-memory user data */
+  SUBJS.forEach(s => { exams[s.id] = []; });
+  compData = [];
+
+  /* Reset profile */
+  if(typeof resetProfile === 'function') resetProfile();
+
+  /* Destroy charts so they don't bleed into next login */
+  ['_dashChart','_subjChart','_compChart'].forEach(k => {
+    if (window[k]) { window[k].destroy(); window[k] = null; }
+  });
+
+  showLogin();
+}
+
+/* ════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════ */
+async function doLogin() {
+  clearMsg();
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn      = document.getElementById('loginBtn');
+
+  if (!email || !password) { showMsg('أدخل الإيميل والباسورد', 'error'); return; }
+
+  /* Gmail validation */
+  if (!email.toLowerCase().endsWith('@gmail.com')) {
+    showMsg('من فضلك أدخل بريد إلكتروني صحيح ينتهي بـ @gmail.com', 'error'); return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'جاري الدخول...';
+
+  try {
+    const res  = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) { showMsg(data.error || 'الإيميل أو الباسورد غلط', 'error'); return; }
+
+    /* Save token */
+    localStorage.setItem('st_token', data.token);
+    if (typeof authToken !== 'undefined') authToken = data.token;
+
+    /* Load grades from DB then show app */
+    if (typeof loadGradesFromDB === 'function') await loadGradesFromDB();
+    showApp(data.name);
+
+  } catch {
+    showMsg('الخادم غير متاح حالياً', 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'تسجيل الدخول';
+  }
+}
+
+/* ════════════════════════════════════════
+   REGISTER
+════════════════════════════════════════ */
+async function doRegister() {
+  clearMsg();
+  const name     = document.getElementById('regName').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm  = document.getElementById('regConfirm').value;
+  const btn      = document.getElementById('registerBtn');
+
+  if (!name || !email || !password || !confirm) { showMsg('كل الحقول مطلوبة', 'error'); return; }
+
+  /* Gmail validation */
+  if (!email.toLowerCase().endsWith('@gmail.com')) {
+    showMsg('من فضلك أدخل بريد إلكتروني صحيح ينتهي بـ @gmail.com', 'error'); return;
+  }
+
+  if (password.length < 6) { showMsg('الباسورد لازم يكون 6 أحرف على الأقل', 'error'); return; }
+  if (password !== confirm) { showMsg('الباسورد والتأكيد مش متطابقين', 'error'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = 'جاري الإنشاء...';
+
+  try {
+    const res  = await fetch(`${API}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) { showMsg(data.error || 'حدث خطأ', 'error'); return; }
+
+    showMsg('✅ تم إنشاء الحساب! سجّل دخولك الآن.', 'success');
+    ['regName','regEmail','regPassword','regConfirm'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    setTimeout(() => switchAuthTab('login'), 1800);
+
+  } catch {
+    showMsg('الخادم غير متاح حالياً', 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'إنشاء الحساب';
+  }
+}
+
+/* ════════════════════════════════════════
+   AUTO-LOGIN on page load
+════════════════════════════════════════ */
+(async function autoLogin() {
+  const token = localStorage.getItem('st_token');
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${API}/me`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) { localStorage.removeItem('st_token'); return; }
+
+    const data = await res.json();
+    if (typeof authToken !== 'undefined') authToken = token;
+    if (typeof loadGradesFromDB === 'function') await loadGradesFromDB();
+    showApp(data.name);
+
+  } catch {
+    localStorage.removeItem('st_token');
+    /* Server unreachable on page load — stay on login screen */
+  }
+})();
+</script>
+
+</body>
+</html>

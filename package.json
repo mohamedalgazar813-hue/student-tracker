@@ -1,7 +1,7 @@
 {
-  "name": "student-tracker-backend",
+  "name": "student-tracker",
   "version": "1.0.0",
-  "description": "Student Tracker Backend API",
+  "description": "Student Tracker — Full-stack on Vercel (Serverless + Static)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
